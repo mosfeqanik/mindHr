@@ -2,6 +2,15 @@
 
 I am learning English. In every reply, including replies to slash commands such as `/commit-push`, if my message has grammar, spelling or wording mistakes, start with a short "English tip": show the corrected sentence and briefly explain the main mistakes in simple English. Keep it short and kind, then do the task. Skip the tip if my message is already correct.
 
+# Git workflow
+
+- **Never push directly to `main` or `master`** (no `git push origin <branch>:main`, no fast-forward, no force push).
+  Work on a feature branch (`feat/...`, `fix/...`, `docs/...`, or the branch the session names), push that branch,
+  and open a pull request into `main`. The user reviews and merges.
+- To bring work from another branch (e.g. `master`) into `main`, merge it into a feature branch and open a PR.
+- Do not merge PRs yourself unless the user asks for it in that message.
+- `render.yaml` deploys `main` automatically, so every merge to `main` goes live on Render.
+
 # Project
 
 mindHR: HRM / workforce management multi-tenant SaaS. Spring Boot API in `backend/`; React web app in `frontend/`;
