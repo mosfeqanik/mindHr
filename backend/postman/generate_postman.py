@@ -95,6 +95,20 @@ def example(name, t, depth=0):
     return "string"
 
 
+JAVA_STRING = r'"((?:[^"\\]|\\.)*)"'
+
+
+def operation_text(block):
+    """Summary and description of an @Operation(...) annotation; "a" + "b" literals are joined."""
+    out = []
+    for key in ("summary", "description"):
+        m = re.search(key + r"\s*=\s*((?:" + JAVA_STRING + r"\s*\+?\s*)+)", block)
+        if m:
+            text = "".join(re.findall(JAVA_STRING, m.group(1))).replace('\\"', '"').strip()
+            out.append(text if text.endswith(".") else text + ".")
+    return " ".join(out)
+
+
 def parse_controller(path):
     text = path.read_text(encoding="utf-8")
     cls = re.search(r"public class (\w+)", text).group(1)
@@ -111,6 +125,17 @@ def parse_controller(path):
                 i += 1
                 buf += " " + lines[i].strip()
             doc = re.sub(r"\s+", " ", re.sub(r"/\*\*|\*/|\*", " ", buf)).strip()
+        elif ln.startswith("@Operation"):
+            # Swagger's @Operation is the single source of an endpoint's description (Postman gets the same text).
+            buf, depth = "", 0
+            while True:
+                part = re.sub(JAVA_STRING, '""', lines[i])
+                buf += " " + lines[i].strip()
+                depth += part.count("(") - part.count(")")
+                if depth <= 0 or i + 1 >= len(lines):
+                    break
+                i += 1
+            doc = operation_text(buf)
         elif ln.startswith("@PreAuthorize"):
             m = re.search(r"hasAuthority\('(\w+)'\)", ln)
             auth = m.group(1) if m else ""
@@ -176,7 +201,7 @@ def build():
             desc = (e["doc"] + " " if e["doc"] else "") + (f"Requires authority: {e['auth']}." if e["auth"] else "")
             if cls == "AuthController":
                 req["auth"] = {"type": "noauth"}
-                desc = "Public. Copy `token` from the response and paste it into the collection variable `token`."
+                desc = "Public. Copy `accessToken` from the response and paste it into the collection variable `token`."
             if desc:
                 req["description"] = desc.strip()
             items.append({"name": f"{e['verb']} {e['path']}", "request": req})

@@ -46,8 +46,14 @@ docker compose down
 - First start seeds one `SUPER_ADMIN` (`DataSeeder`) when no user exists. Change its password after first login.
 - Dockerfile is multi-stage: Maven 3.9 + Temurin 21 build, then `eclipse-temurin:21-jre` runtime.
 - Swagger UI: `http://localhost:8080/swagger-ui.html` (springdoc; spec at `/v3/api-docs`). Auth is manual: log in, click Authorize, paste the JWT.
+  The front page ("Who can do what") is in `config/OpenApiConfig`; update it when access rules change.
 - Postman: `backend/postman/mindhr.postman_collection.json` is generated from the controllers and DTOs.
   After adding or changing endpoints, run `python postman/generate_postman.py` from `backend/`. Do not add token-saving scripts; the user pastes the token into the `token` variable.
+- **Endpoint docs have one source:** `@Operation(summary = "...", description = "...")` on the controller method. Swagger
+  shows it and the Postman generator copies it into the request description. Say who may call it whenever the check is
+  not a plain `hasAuthority` (platform-only, own-record-only, data scope, ...). Without `@Operation` the generator falls
+  back to the method's Javadoc plus `Requires authority: X` from `@PreAuthorize`. Documented so far: users, roles,
+  billing (subscriptions, invoices, payments, payment methods, receipts), activity log, auth.
 
 ## Notes
 
@@ -55,7 +61,7 @@ docker compose down
   so `source .env` fails in zsh; read single keys with `grep '^KEY=' .env | cut -d= -f2-`.
 - `backend/CLAUDE.md` still says only the entity layer exists; controllers, services, DTOs and repositories are now built.
 - **E2E API test:** `python3 scripts/api_e2e_test.py` (from `backend/`, backend running) seeds a "QA Test Org" with
-  QA logins (`qa.owner|qa.lead|qa.emp1|qa.emp2@mindhr.test`, password `QaTest@123`) and runs ~150 checks: setup,
+  QA logins (`qa.owner|qa.lead|qa.emp1|qa.emp2@mindhr.test`, password `QaTest@123`) and runs ~210 checks: setup,
   check-in/geofence, leave, requests, approvals, payroll, data scope, users/roles escalation, billing, activity log,
   tenant isolation. Re-runnable; exits 1 on any FAIL. The "another organization's role" check runs only when a second
   organization exists.
