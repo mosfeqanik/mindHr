@@ -229,7 +229,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/activity-logs?organizationId=",
+              "raw": "{{baseUrl}}/api/activity-logs?organizationId=&limit=",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -241,6 +241,11 @@
                 {
                   "key": "organizationId",
                   "value": "{{organizationId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "",
                   "disabled": true
                 }
               ]

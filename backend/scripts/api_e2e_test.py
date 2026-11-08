@@ -566,6 +566,24 @@ def main():
     s, b = call("PATCH", f"/api/invoices/{fake}/status", admin, {"status": "PAID"})
     expect("Super Admin passes the billing role check (missing invoice -> 404)", s, b, 404)
 
+    # ------------------------------------------------ activity log (written automatically by ActivityRecorder)
+    begin("Activity log")
+    s, logs = call("GET", "/api/activity-logs?limit=500", owner)
+    expect("Owner reads the activity log", s, logs, 200)
+    logs = logs if s == 200 else []
+    check("Activity rows are only from the owner's org", all(a["organizationId"] == org_id for a in logs), f"{len(logs)} rows")
+    check("Leave approval was recorded",
+          any(a["action"] == "APPROVE" and a["entityType"] == "LEAVE_REQUEST" and a["entityId"] == l_approve["id"] for a in logs))
+    check("Check-in was recorded with who did it",
+          any(a["action"] == "CHECK_IN" and a["entityType"] == "ATTENDANCE" and a["actorName"] for a in logs))
+    check("Request bodies are not stored", all("password" not in (a["details"] or "").lower() or "change-password" in a["details"] for a in logs))
+    s, b = call("GET", "/api/activity-logs?limit=5", owner)
+    check("limit is applied", s == 200 and len(b) <= 5, f"{s} {len(b or [])}")
+    s, b = call("GET", "/api/activity-logs", emp1)
+    expect("Employee reads the activity log -> 403", s, b, 403)
+    s, b = call("GET", "/api/activity-logs", admin)
+    expect("Super Admin reads all activity", s, b, 200)
+
     # ------------------------------------------------ tenant isolation
     begin("Tenant isolation")
     s, all_emps = call("GET", "/api/employees", owner)

@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
+  Activity,
   Briefcase,
   Box,
   Calendar,
@@ -27,6 +28,7 @@ import { subscriptionsApi } from '../api/platform'
 import type { PlanFeature } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { PageHeader } from '../components/ui'
+import { canViewActivity } from '../lib/activity'
 
 type Section = 'platform' | 'account' | 'modules'
 
@@ -64,6 +66,9 @@ const NAV: NavItem[] = [
   { to: '/payroll', label: 'Payroll', icon: DollarSign, section: 'modules', permission: 'PAYROLL_VIEW', orgScoped: true, feature: 'PAYROLL' },
   { to: '/assets', label: 'Assets', icon: Box, section: 'modules', permission: 'ASSET_VIEW', orgScoped: true, feature: 'ASSETS' },
 ]
+
+// Shown right under Dashboard to platform users and org-wide roles (owner, HR admin); not in NAV so it never needs an org picked.
+const ACTIVITY_ITEM: NavItem = { to: '/activity', label: 'Activity', icon: Activity }
 
 const SECTION_TITLES: Record<Section, string> = { platform: 'Platform', account: 'Client account', modules: 'HR modules' }
 
@@ -222,6 +227,7 @@ export function AppShell() {
           <nav className="sidebar-nav">
             <ul id="sidebarnav">
               {renderItem(NAV[0])}
+              {canViewActivity(session?.userType, session?.dataScope) && renderItem(ACTIVITY_ITEM)}
               {sections.map((s) => (
                 <Fragment key={s.key}>
                   {section(SECTION_TITLES[s.key])}

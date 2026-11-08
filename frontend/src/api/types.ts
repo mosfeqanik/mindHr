@@ -558,3 +558,20 @@ export interface SystemSetting {
   description: string | null
 }
 export type SystemSettingRequest = Omit<SystemSetting, 'id'>
+
+/** GET /api/activity-logs: one row per successful write request, newest first. */
+export interface ActivityLog {
+  id: number
+  organizationId: number | null
+  actorUserId: number | null
+  actorName: string | null
+  /** CREATE, UPDATE, DELETE, or the URL's action segment (APPROVE, STATUS, CHECK_IN, ...). */
+  action: string
+  /** Singular resource name, e.g. EMPLOYEE, LEAVE_REQUEST. */
+  entityType: string
+  entityId: number | null
+  /** {"method":"PUT","path":"/api/employees/5"} */
+  details: string | null
+  ipAddress: string | null
+  createdAt: string
+}
