@@ -533,6 +533,57 @@ def main():
     expect("Employee lists own payslips", s, b, 200)
     check("Employee sees only own payslips", b and all(p["employeeId"] == ids["emp1"] for p in b), f"{len(b or [])}")
 
+    # ------------------------------------------------ billing is platform-only
+    begin("Billing: org users read, only platform staff write")
+    s, subs = call("GET", "/api/subscriptions", owner)
+    expect("Owner lists own subscriptions", s, subs, 200)
+    sub = subs[0] if s == 200 and subs else None
+    for path in ("/api/invoices", "/api/payments", "/api/receipts", "/api/payment-methods"):
+        s, b = call("GET", path, owner)
+        expect(f"Owner reads {path}", s, b, 200)
+    fake = 999999999  # the role check runs before the lookup, so a missing id still gives 403
+    attempts = [
+        ("POST", "/api/subscriptions", {"planId": plan["id"], "status": "ACTIVE", "startDate": dt.date.today().isoformat()}),
+        ("PUT", f"/api/subscriptions/{sub['id'] if sub else fake}", {"autoRenew": False}),
+        ("PATCH", f"/api/subscriptions/{sub['id'] if sub else fake}/status", {"status": "ACTIVE", "note": "qa"}),
+        ("PATCH", f"/api/subscriptions/{sub['id'] if sub else fake}/plan", {"planId": plan["id"], "note": "qa"}),
+        ("POST", "/api/invoices", {"invoiceNumber": "QA-FORBIDDEN", "amount": 1, "issueDate": dt.date.today().isoformat(),
+                                   "dueDate": dt.date.today().isoformat()}),
+        ("PUT", f"/api/invoices/{fake}", {"invoiceNumber": "QA-FORBIDDEN", "amount": 1, "issueDate": dt.date.today().isoformat(),
+                                          "dueDate": dt.date.today().isoformat()}),
+        ("PATCH", f"/api/invoices/{fake}/status", {"status": "PAID"}),
+        ("POST", "/api/payments", {"invoiceId": fake, "amount": 1}),
+        ("PATCH", f"/api/payments/{fake}/status", {"status": "CONFIRMED"}),
+        ("POST", f"/api/payments/{fake}/receipt", None),
+        ("POST", "/api/payment-methods", {"type": "CARD", "maskedDetails": "**** 4242"}),
+        ("PUT", f"/api/payment-methods/{fake}", {"type": "CARD", "maskedDetails": "**** 4242"}),
+        ("DELETE", f"/api/payment-methods/{fake}", None),
+    ]
+    for who, token in (("Owner", owner), ("Employee", emp1)):
+        for method, path, body in attempts:
+            s, b = call(method, path, token, body)
+            expect(f"{who} {method} {path.replace(str(fake), '{id}')} -> 403", s, b, 403)
+    s, b = call("PATCH", f"/api/invoices/{fake}/status", admin, {"status": "PAID"})
+    expect("Super Admin passes the billing role check (missing invoice -> 404)", s, b, 404)
+
+    # ------------------------------------------------ activity log (written automatically by ActivityRecorder)
+    begin("Activity log")
+    s, logs = call("GET", "/api/activity-logs?limit=500", owner)
+    expect("Owner reads the activity log", s, logs, 200)
+    logs = logs if s == 200 else []
+    check("Activity rows are only from the owner's org", all(a["organizationId"] == org_id for a in logs), f"{len(logs)} rows")
+    check("Leave approval was recorded",
+          any(a["action"] == "APPROVE" and a["entityType"] == "LEAVE_REQUEST" and a["entityId"] == l_approve["id"] for a in logs))
+    check("Check-in was recorded with who did it",
+          any(a["action"] == "CHECK_IN" and a["entityType"] == "ATTENDANCE" and a["actorName"] for a in logs))
+    check("Request bodies are not stored", all("password" not in (a["details"] or "").lower() or "change-password" in a["details"] for a in logs))
+    s, b = call("GET", "/api/activity-logs?limit=5", owner)
+    check("limit is applied", s == 200 and len(b) <= 5, f"{s} {len(b or [])}")
+    s, b = call("GET", "/api/activity-logs", emp1)
+    expect("Employee reads the activity log -> 403", s, b, 403)
+    s, b = call("GET", "/api/activity-logs", admin)
+    expect("Super Admin reads all activity", s, b, 200)
+
     # ------------------------------------------------ tenant isolation
     begin("Tenant isolation")
     s, all_emps = call("GET", "/api/employees", owner)

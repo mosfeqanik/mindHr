@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { RequireAuth } from './auth/RequireAuth'
 import { AppShell } from './layouts/AppShell'
 import LoginPage from './pages/LoginPage'
+import ActivityPage from './pages/ActivityPage'
 import DashboardPage from './pages/DashboardPage'
 import EmployeesPage from './pages/EmployeesPage'
 import BranchesPage from './pages/BranchesPage'
@@ -29,6 +30,7 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route index element={<DashboardPage />} />
+          <Route path="activity" element={<ActivityPage />} />
           <Route path="organizations" element={<OrganizationsPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="plans" element={<SubscriptionPlansPage />} />

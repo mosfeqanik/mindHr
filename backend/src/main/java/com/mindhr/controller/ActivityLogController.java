@@ -24,8 +24,9 @@ public class ActivityLogController {
 
     @GetMapping
     public ResponseEntity<List<ActivityLogResponse>> list(
-            @RequestParam(name = "organizationId", required = false) Long organizationId) {
-        return ResponseEntity.ok(activityLogService.list(organizationId));
+            @RequestParam(name = "organizationId", required = false) Long organizationId,
+            @RequestParam(name = "limit", required = false) Integer limit) {
+        return ResponseEntity.ok(activityLogService.list(organizationId, limit));
     }
 
     @PostMapping

@@ -53,6 +53,7 @@ public class PaymentService {
 
     @Transactional
     public PaymentResponse create(PaymentRequest request) {
+        TenantContext.requirePlatformStaff();
         Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
@@ -80,6 +81,7 @@ public class PaymentService {
 
     @Transactional
     public PaymentResponse changeStatus(Long id, PaymentStatusChangeRequest request) {
+        TenantContext.requirePlatformStaff();
         Payment payment = findAccessibleEntity(id);
         payment.setStatus(request.status());
 
@@ -97,6 +99,7 @@ public class PaymentService {
 
     @Transactional
     public ReceiptResponse issueReceipt(Long id) {
+        TenantContext.requirePlatformStaff();
         Payment payment = findAccessibleEntity(id);
 
         if (payment.getStatus() != PaymentStatus.CONFIRMED) {

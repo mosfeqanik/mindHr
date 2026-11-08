@@ -67,6 +67,7 @@ public class SubscriptionService {
 
     @Transactional
     public SubscriptionResponse create(SubscriptionRequest request) {
+        TenantContext.requirePlatformStaff();
         Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
@@ -117,6 +118,7 @@ public class SubscriptionService {
 
     @Transactional
     public SubscriptionResponse update(Long id, SubscriptionUpdateRequest request) {
+        TenantContext.requirePlatformStaff();
         Subscription subscription = findAccessibleEntity(id);
         subscription.setEndDate(request.endDate());
         subscription.setRenewalDate(request.renewalDate());
@@ -129,6 +131,7 @@ public class SubscriptionService {
 
     @Transactional
     public SubscriptionResponse changeStatus(Long id, SubscriptionStatusChangeRequest request) {
+        TenantContext.requirePlatformStaff();
         Subscription subscription = findAccessibleEntity(id);
         SubscriptionStatus fromStatus = subscription.getStatus();
         subscription.setStatus(request.status());
@@ -141,6 +144,7 @@ public class SubscriptionService {
 
     @Transactional
     public SubscriptionResponse changePlan(Long id, SubscriptionPlanChangeRequest request) {
+        TenantContext.requirePlatformStaff();
         Subscription subscription = findAccessibleEntity(id);
         SubscriptionPlan fromPlan = subscription.getPlan();
         SubscriptionPlan toPlan = findPlan(request.planId());

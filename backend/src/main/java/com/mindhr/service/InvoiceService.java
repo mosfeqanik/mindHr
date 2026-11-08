@@ -44,6 +44,7 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceResponse create(InvoiceRequest request) {
+        TenantContext.requirePlatformStaff();
         Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
 
         if (invoiceRepository.existsByInvoiceNumberIgnoreCase(request.invoiceNumber())) {
@@ -70,6 +71,7 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceResponse update(Long id, InvoiceRequest request) {
+        TenantContext.requirePlatformStaff();
         Invoice invoice = findAccessibleEntity(id);
 
         if (invoiceRepository.existsByInvoiceNumberIgnoreCaseAndIdNot(request.invoiceNumber(), id)) {
@@ -90,6 +92,7 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceResponse changeStatus(Long id, InvoiceStatusChangeRequest request) {
+        TenantContext.requirePlatformStaff();
         Invoice invoice = findAccessibleEntity(id);
         invoice.setStatus(request.status());
         if (request.status() == InvoiceStatus.PAID && invoice.getPaidAt() == null) {

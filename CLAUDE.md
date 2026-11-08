@@ -10,6 +10,9 @@ I am learning English. In every reply, including replies to slash commands such 
 - To bring work from another branch (e.g. `master`) into `main`, merge it into a feature branch and open a PR.
 - Do not merge PRs yourself unless the user asks for it in that message.
 - `render.yaml` deploys `main` automatically, so every merge to `main` goes live on Render.
+- Render can build the API two ways: the Blueprint (`render.yaml`, `rootDir: backend`, uses `backend/Dockerfile`), or a
+  manually created Web Service with Root Directory empty, which uses the root `Dockerfile` (copies from `backend/`).
+  Keep the two Dockerfiles in sync.
 
 # Project
 
@@ -66,6 +69,18 @@ docker compose down
   `roleIds` on a user replaces all roles.
 - The web app cannot yet set an employee's branch, department or manager, or change a user's roles; use Swagger
   (see the manual).
+- **Activity log is automatic.** `audit/ActivityRecorder` (a `HandlerInterceptor`, registered in `config/WebMvcConfig`)
+  writes one `ActivityLog` row after every 2xx POST/PUT/PATCH/DELETE under `/api/**`: entity type, id and action come
+  from the URL (`/api/leave-requests/7/approve` -> LEAVE_REQUEST 7 APPROVE), and `audit/ResponseIdCapture` supplies the
+  id and organizationId of created records from the response body. Request bodies are never stored. Skipped:
+  `/api/auth/**`, `/api/activity-logs`, notification `/read`. New endpoints are logged without any extra code.
+  `GET /api/activity-logs?limit=` (default 100, max 500): platform staff see all orgs; org users need ORGANIZATION data
+  scope (owner, HR admin), others get 403. Web: `/activity` page and a "Recent activity" card on the dashboard.
+- **Billing is platform-only for writes.** Subscriptions, invoices, payments (and receipt issuing) and payment methods:
+  org users (any role, even `ORG_OWNER`) can only read their own org's records; create/update/status/plan/delete calls
+  `TenantContext.requirePlatformStaff()` (SUPER_ADMIN or SAAS_STAFF) and returns 403 otherwise. Covered by the E2E
+  "Billing" section. `SubscriptionService.createInitial` has no check because only `OrganizationService.create` (already
+  platform-only) calls it.
 - **Open security gap:** `UserController` and `RoleController` have no `@PreAuthorize`, so any signed-in org user (even
   `EMPLOYEE`) can list the org's users and roles, and likely `PUT /api/users/{id}` with `roleIds` (privilege escalation).
   Needs a permission check before production.
@@ -88,7 +103,7 @@ docker compose up --build -d   # http://localhost:3000, nginx serves the SPA and
 - `SUPER_ADMIN` gets every HR permission at login (`CustomUserDetails.superAdminHrAuthorities`); `SAAS_STAFF` holds none (spec section 29) and gets 403 on HR endpoints.
   Platform users pick an organization in the top bar (`OrgPicker` in `AppShell`); `src/api/orgScope.ts` adds that `organizationId` to every org-scoped request (GET params, POST/PUT bodies), and org-scoped pages show "Select an organization" until one is picked. Self-service actions (apply leave, check-in) still need an employee profile.
 - If the backend fails with `ClassFormatError: Invalid method Code length 0`, the VS Code Java extension wrote a bad class into `target/classes`; start with `./mvnw clean spring-boot:run`.
-- Built so far (web): login, app shell, and screens for Organizations, Users, Subscription Plans, System Settings, Subscriptions, Billing (invoices, payments, receipts), Contracts and Support Tickets (platform side), and for Employees, Branches, Departments, Attendance (list + manual records; mobile check-in/out is not in the web app), Leave (requests with apply/approve/reject/cancel, balances, types), Shifts (roster + shifts), Payroll (runs: generate/finalize/pay/delete, payslips with adjustments) and Assets (assets, assignments with return, employee documents). Pattern: `crud()` in `src/api/crud.ts`, `useResource` for lists, `DataTable`/`Tabs`/`Modal` in `src/components/ui.tsx`. API types in `src/api/types.ts` are hand-written from the DTOs.
+- Built so far (web): login, app shell, and screens for Organizations, Users, Subscription Plans, System Settings, Subscriptions, Billing (invoices, payments, receipts), Contracts and Support Tickets (platform side), and for Employees, Branches, Departments, Attendance (list + manual records; mobile check-in/out is not in the web app), Leave (requests with apply/approve/reject/cancel, balances, types), Shifts (roster + shifts), Payroll (runs: generate/finalize/pay/delete, payslips with adjustments), Activity (audit log) and Assets (assets, assignments with return, employee documents). Pattern: `crud()` in `src/api/crud.ts`, `useResource` for lists, `DataTable`/`Tabs`/`Modal` in `src/components/ui.tsx`. API types in `src/api/types.ts` are hand-written from the DTOs.
 
 ## Mobile app (`mobile_app/`)
 
