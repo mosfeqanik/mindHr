@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { errorMessage } from '../../api/client'
 import { organizationsApi, usersApi } from '../../api/platform'
 import type { User, UserType } from '../../api/types'
+import { useAuth } from '../../auth/AuthContext'
 import { useResource } from '../../api/useResource'
 import {
   ActiveBadge,
@@ -40,6 +41,9 @@ const schema = z.object({
 type Form = z.infer<typeof schema>
 
 function UserForm({ item, onClose, onSaved }: { item: User | null; onClose: () => void; onSaved: () => void }) {
+  const { session } = useAuth()
+  // Only the Super Admin may create or change platform accounts; the backend rejects it for SaaS staff.
+  const userTypes: UserType[] = session?.userType === 'SUPER_ADMIN' ? USER_TYPES : ['ORG_USER']
   const orgs = useQuery({ queryKey: ['organizations', null], queryFn: () => organizationsApi.list() })
   const [error, setError] = useState<string | null>(null)
   const {
@@ -120,7 +124,7 @@ function UserForm({ item, onClose, onSaved }: { item: User | null; onClose: () =
             <div className="col-md-6">
               <Field label="User type">
                 <Select {...register('userType')}>
-                  {USER_TYPES.map((t) => (
+                  {userTypes.map((t) => (
                     <option key={t} value={t}>
                       {label(t)}
                     </option>

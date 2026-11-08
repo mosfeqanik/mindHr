@@ -19,10 +19,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Spring Security principal wrapping a {@link User}. Authorities are derived from the
- * user's {@link Role}s ({@code ROLE_<name>}) and each role's {@link Permission}s
- * ({@code <MODULE>_<ACTION>}), matching the CLAUDE.md permission model
- * ({@code Role -> Permission(module, action)}).
+ * Spring Security principal wrapping a {@link User}. Authorities are each role's
+ * {@link Permission}s ({@code <MODULE>_<ACTION>}), matching the CLAUDE.md permission model
+ * ({@code Role -> Permission(module, action)}), plus {@code ROLE_SUPER_ADMIN} /
+ * {@code ROLE_SAAS_STAFF} taken from the user's <b>type</b>, never from role names: an
+ * organization could otherwise create a custom role named "SUPER_ADMIN" and pass
+ * {@code hasRole('SUPER_ADMIN')}.
+ *
+ * <p>Only roles on the user's own side count: an org user's roles of their own organization, a
+ * platform user's platform roles. A role assigned across that line (bad data, or an assignment
+ * made before the checks in {@code UserService}) grants nothing.
  *
  * <p>Must be built from a {@link User} whose {@code roles} and {@code roles.permissions}
  * collections are already initialized (e.g. via
@@ -53,7 +59,7 @@ public class CustomUserDetails implements UserDetails {
         // even once the loading transaction has closed.
         this.organizationId = user.getOrganization() != null ? user.getOrganization().getId() : null;
         this.active = user.isActive();
-        this.authorities = buildAuthorities(user.getRoles(), user.getUserType());
+        this.authorities = buildAuthorities(effectiveRoles(user), user.getUserType());
         this.employeeId = employee != null ? employee.getId() : null;
         this.branchId = employee != null && employee.getBranch() != null ? employee.getBranch().getId() : null;
         this.dataScope = widestScope(user);
@@ -64,20 +70,38 @@ public class CustomUserDetails implements UserDetails {
         return new CustomUserDetails(user, employee);
     }
 
-    /** Platform users are always PLATFORM; otherwise the widest scope among the user's roles. */
+    /** The roles that apply: same organization as the user (org user) or platform roles (platform user). */
+    private static Set<Role> effectiveRoles(User user) {
+        Long organizationId = user.getOrganization() != null ? user.getOrganization().getId() : null;
+        boolean orgUser = user.getUserType() == UserType.ORG_USER;
+        return user.getRoles().stream()
+                .filter(role -> {
+                    Long roleOrganizationId = role.getOrganization() != null ? role.getOrganization().getId() : null;
+                    return orgUser ? organizationId != null && organizationId.equals(roleOrganizationId)
+                            : roleOrganizationId == null;
+                })
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Platform users are always PLATFORM; otherwise the widest scope among the user's own-organization
+     * roles, at most ORGANIZATION (an org user never sees other organizations).
+     */
     private static DataScope widestScope(User user) {
         if (user.getUserType() != UserType.ORG_USER) {
             return DataScope.PLATFORM;
         }
-        return user.getRoles().stream()
+        DataScope widest = effectiveRoles(user).stream()
                 .map(Role::effectiveDataScope)
                 .reduce(DataScope::widest)
                 .orElse(DataScope.SELF);
+        return widest == DataScope.PLATFORM ? DataScope.ORGANIZATION : widest;
     }
 
     private static Set<GrantedAuthority> buildAuthorities(Set<Role> roles, UserType userType) {
-        Stream<String> roleAuthorities = roles.stream()
-                .map(role -> "ROLE_" + role.getName().toUpperCase().replace(' ', '_'));
+        Stream<String> roleAuthorities = userType == UserType.ORG_USER
+                ? Stream.empty()
+                : Stream.of("ROLE_" + userType.name());
 
         Stream<String> permissionAuthorities = roles.stream()
                 .flatMap(role -> role.getPermissions().stream())

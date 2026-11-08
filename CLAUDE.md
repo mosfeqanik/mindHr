@@ -56,8 +56,9 @@ docker compose down
 - `backend/CLAUDE.md` still says only the entity layer exists; controllers, services, DTOs and repositories are now built.
 - **E2E API test:** `python3 scripts/api_e2e_test.py` (from `backend/`, backend running) seeds a "QA Test Org" with
   QA logins (`qa.owner|qa.lead|qa.emp1|qa.emp2@mindhr.test`, password `QaTest@123`) and runs ~150 checks: setup,
-  check-in/geofence, leave, requests, approvals, payroll, data scope, tenant isolation. Re-runnable; exits 1 on any FAIL.
-  The two `KNOWN ISSUE` checks fail until `/api/users` and `/api/roles` get permission checks.
+  check-in/geofence, leave, requests, approvals, payroll, data scope, users/roles escalation, billing, activity log,
+  tenant isolation. Re-runnable; exits 1 on any FAIL. The "another organization's role" check runs only when a second
+  organization exists.
 - Unreadable request bodies (bad JSON, unknown enum value) return 400 via `GlobalExceptionHandler`; `/error` is
   `permitAll` so Spring's error forward no longer turns errors into 401.
 - `mvnw` is not executable in git; run it as `sh ./mvnw ...` (same for `mobile_app/gradlew`).
@@ -83,9 +84,14 @@ docker compose down
   `TenantContext.requirePlatformStaff()` (SUPER_ADMIN or SAAS_STAFF) and returns 403 otherwise. Covered by the E2E
   "Billing" section. `SubscriptionService.createInitial` has no check because only `OrganizationService.create` (already
   platform-only) calls it.
-- **Open security gap:** `UserController` and `RoleController` have no `@PreAuthorize`, so any signed-in org user (even
-  `EMPLOYEE`) can list the org's users and roles, and likely `PUT /api/users/{id}` with `roleIds` (privilege escalation).
-  Needs a permission check before production.
+- **Users and roles are platform-staff only.** `UserService` / `RoleService` call `TenantContext.requirePlatformStaff()`
+  on every list/create/update/delete; an org user (even `ORG_OWNER`) gets 403 and may only `GET /api/users/{ownId}`.
+  Rules that bind platform staff too: an account with an organization is always `ORG_USER` (400 otherwise); roles must
+  belong to the user's organization (org user) or be platform roles (platform user); an org role cannot have `PLATFORM`
+  data scope. Platform accounts (SUPER_ADMIN / SAAS_STAFF) are still Super Admin-only.
+- **Authorities (`CustomUserDetails`):** `ROLE_SUPER_ADMIN` / `ROLE_SAAS_STAFF` come from the user **type**, never from
+  role names (a custom org role named `SUPER_ADMIN` grants nothing). Org users only get permissions from roles of their
+  own organization, and their data scope is at most `ORGANIZATION`. `hasRole('X')` therefore means "user type X".
 
 ## Frontend (`frontend/`)
 

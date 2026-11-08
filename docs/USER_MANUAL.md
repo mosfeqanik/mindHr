@@ -143,7 +143,8 @@ The changes reach the mobile app at the employee's **next sign-in** (the branch 
 
 ### Make someone a manager (roles)
 
-The web app has no screen for roles yet, so use Swagger with the **Super Admin** account:
+The web app has no screen for roles yet, so use Swagger with the **Super Admin** account. Only platform staff
+(Super Admin, SaaS staff) can change users and roles; organization users, even the owner, get 403:
 
 1. Signed in as Super Admin, run `GET /api/roles?organizationId=<org id>` and note the id of `TEAM_LEAD` (or
    `BRANCH_MANAGER`).

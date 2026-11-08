@@ -99,6 +99,9 @@ service, controller) follow the same shape as the SaaS entities.
 - **What:** `Role` -> `Permission(module, action)`, enforced with `@PreAuthorize("hasAuthority('<MODULE>_<ACTION>')")`.
   HR modules: BRANCH, DEPARTMENT, EMPLOYEE, ATTENDANCE, SHIFT, LEAVE, PAYROLL, PAYSLIP, ASSET, DOCUMENT, REQUEST.
   SaaS staff hold none of these, so they cannot read client HR data (spec section 29).
+- **Who manages access:** users and roles (`/api/users`, `/api/roles`) are platform-staff only; org users get 403.
+  `ROLE_*` authorities come from the user type (`ROLE_SUPER_ADMIN`, `ROLE_SAAS_STAFF`), not from role names, and an
+  org user's permissions come only from roles of their own organization (`CustomUserDetails`).
 - **Which rows:** `Role.dataScope` (`PLATFORM`, `ORGANIZATION`, `BRANCH`, `TEAM`, `SELF`); widest scope across a user's roles wins.
   Enforced by `DataScopeService` (visibleEmployeeIds / assertCanAccess / resolveEmployeeForWrite). Scope, employeeId and branchId
   are JWT claims, so changes apply at next login.
