@@ -4,5 +4,6 @@ target/
 .idea/
 .vscode/
 *.iml
-README.md.env
+README.md
+.env
 .DS_Store
