@@ -17,7 +17,7 @@ Commit the current changes and push them to the remote in one flow.
    - If there are no changes to commit but there are unpushed commits, skip to step 2.
    - If there is nothing to commit and nothing to push, say so and stop.
 2. Follow the `/push` skill to push:
-   - `git push -u origin <branch>` if no upstream is set, otherwise `git push` (origin is `git@github.com:mosfeqanik/hrm_management.git`).
+   - `git push -u origin <branch>` if no upstream is set, otherwise `git push` (origin is `https://github.com/mosfeqanik/mindHr`).
    - On rejection, fetch and show incoming commits, then ask before rebasing. Never force-push.
 3. Report the commit hash, the branch, and the remote it was pushed to.
 

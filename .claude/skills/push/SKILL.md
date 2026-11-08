@@ -10,6 +10,8 @@ Push the current branch's commits to the remote.
 
 ## Steps
 
+0. If the current branch (or the target in `$ARGUMENTS`) is `main` or `master`, **stop**: do not push. Tell the user
+   that `main`/`master` only change through pull requests, and offer to create a feature branch and open a PR.
 1. Run `git status -sb` to get the current branch and its upstream tracking status.
 2. Run `git remote -v` to confirm a remote named `origin` exists. If none exists, tell the user and stop.
 3. If the branch has no upstream, push with `git push -u origin <branch>`. Otherwise run `git push`.
@@ -20,6 +22,7 @@ Push the current branch's commits to the remote.
 
 ## Rules
 
+- Never push to `main` or `master`, directly or via `<branch>:main` refspecs. Changes reach them only through PRs.
 - Never use `--force` or `--force-with-lease` unless the user explicitly asks in this session.
 - Do not commit anything. If there are uncommitted changes, mention them but still push what is committed.
 - If `$ARGUMENTS` names a remote or branch (e.g. `upstream main`), use that instead of the defaults.
