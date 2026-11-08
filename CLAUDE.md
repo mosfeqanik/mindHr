@@ -10,6 +10,8 @@ I am learning English. In every reply, including replies to slash commands such 
 - To bring work from another branch (e.g. `master`) into `main`, merge it into a feature branch and open a PR.
 - Do not merge PRs yourself unless the user asks for it in that message.
 - `render.yaml` deploys `main` automatically, so every merge to `main` goes live on Render.
+- The web app is deployed on Netlify from `main` (`netlify.toml`); `/api/*` is proxied to the Render API, so no CORS.
+  If the Render service URL changes, update the redirect in `netlify.toml`.
 - Render can build the API two ways: the Blueprint (`render.yaml`, `rootDir: backend`, uses `backend/Dockerfile`), or a
   manually created Web Service with Root Directory empty, which uses the root `Dockerfile` (copies from `backend/`).
   Keep the two Dockerfiles in sync.

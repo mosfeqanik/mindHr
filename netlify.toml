@@ -1,0 +1,26 @@
+# Netlify config for the React web app (frontend/). The API stays on Render.
+# Netlify dashboard > Add new site > Import from Git > pick this repo; every setting below is read from here.
+
+[build]
+  base = "frontend"           # commands run in frontend/
+  command = "npm run build"   # tsc -b && vite build
+  publish = "dist"            # relative to base
+  # Skip the build when nothing under frontend/ changed (backend-only commits).
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ."
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Same idea as nginx.conf in Docker: the browser calls /api on the Netlify domain and Netlify forwards it
+# to Render, so the backend needs no CORS config. Change the host if your Render service URL differs.
+[[redirects]]
+  from = "/api/*"
+  to = "https://mindhr-api.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+# React Router: every other path (/activity, /payroll/3, ...) serves index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
