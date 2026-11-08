@@ -1,0 +1,165 @@
+/*
+ * mindHR color utilities: the ONLY place colors are defined.
+ * Every other stylesheet (theme.css, LoginPage.css) and the login particle field use these variables;
+ * change a color here and it changes everywhere. Bootstrap / FreeDash variables are mapped at the bottom.
+ */
+:root {
+  /* ---------- Brand ---------- */
+  --mh-primary: #0298b6;
+  --mh-primary-rgb: 2, 152, 182;
+  --mh-primary-hover: #027d96; /* buttons: a darker primary */
+  --mh-primary-active: #026a80;
+  --mh-primary-subtle: #e6f5f8; /* tinted backgrounds, e.g. table headers */
+  --mh-primary-border: #9ad6e2;
+  --mh-primary-light: #2bb8d4; /* primary on dark backgrounds */
+  --mh-primary-light-hover: #5ccae0;
+
+  /* Logo colors, used only for brand accents (sidebar highlight, login particles) */
+  --mh-logo-navy: #1a2f4e;
+  --mh-logo-blue: #0685e6;
+  --mh-logo-green: #1bc48d;
+  --mh-gradient: linear-gradient(to right, var(--mh-logo-blue), var(--mh-primary) 55%, var(--mh-logo-green));
+
+  /* ---------- Neutrals ---------- */
+  --mh-white: #ffffff;
+  --mh-black: #000000;
+  --mh-text: var(--mh-black);
+  --mh-text-hover: var(--mh-black);
+  --mh-text-muted: #6b7280;
+  --mh-border: #e5e7eb;
+  --mh-border-strong: #d1d5db;
+  --mh-surface: #ffffff;
+  --mh-surface-alt: #f8fafb; /* page background, striped rows */
+  --mh-row-hover: #eef7f9;
+
+  /* ---------- Status ---------- */
+  --mh-success: #1bc48d;
+  --mh-success-rgb: 27, 196, 141;
+  --mh-info: #0685e6;
+  --mh-info-rgb: 6, 133, 230;
+  --mh-info-hover: #0570c2;
+  --mh-warning: #f5a524;
+  --mh-warning-rgb: 245, 165, 36;
+  --mh-danger: #e5484d;
+  --mh-danger-rgb: 229, 72, 77;
+  --mh-danger-subtle: rgba(229, 72, 77, 0.08);
+
+  /* ---------- Dark surfaces (login dark mode) ---------- */
+  --mh-dark-bg: #0b1120;
+  --mh-dark-bg-alt: #1e293b;
+  --mh-dark-surface: rgba(20, 28, 46, 0.78);
+  --mh-dark-input: rgba(15, 23, 42, 0.75);
+  --mh-dark-border: #334155;
+  --mh-dark-border-strong: #475569;
+  --mh-dark-text: #f1f5f9;
+  --mh-dark-text-secondary: #cbd5e1;
+  --mh-dark-text-muted: #94a3b8;
+  --mh-dark-danger: #f87171;
+  --mh-dark-danger-subtle: rgba(248, 113, 113, 0.12);
+
+  /* ---------- Login glass card ---------- */
+  --mh-login-bg-start: #f4f6fb;
+  --mh-login-bg-end: #e6ebf5;
+  --mh-glass: rgba(255, 255, 255, 0.72);
+  --mh-glass-input: rgba(255, 255, 255, 0.9);
+  --mh-glass-border: rgba(15, 23, 42, 0.06);
+  --mh-dark-glass-border: rgba(148, 163, 184, 0.12);
+  --mh-toggle-bg: #eef2f7;
+  --mh-hover-overlay: rgba(100, 116, 139, 0.12);
+  --mh-vignette: rgba(0, 0, 0, 0.04);
+  --mh-vignette-dark: rgba(0, 0, 0, 0.35);
+
+  /* ---------- Effects ---------- */
+  --mh-focus-ring: rgba(var(--mh-primary-rgb), 0.25);
+  --mh-shadow-primary: 0 10px 24px -8px rgba(var(--mh-primary-rgb), 0.55);
+  --mh-shadow-card: 0 24px 60px -20px rgba(15, 23, 42, 0.18), 0 8px 24px -12px rgba(15, 23, 42, 0.08);
+  --mh-shadow-card-dark: 0 30px 60px -20px rgba(0, 0, 0, 0.65), 0 12px 28px -12px rgba(0, 0, 0, 0.45);
+
+  /* ---------- Login particle field (read by ParticleBackground.tsx) ---------- */
+  --mh-particle-1: var(--mh-primary);
+  --mh-particle-2: var(--mh-logo-blue);
+  --mh-particle-3: var(--mh-logo-green);
+  --mh-particle-line: #94a3b8;
+  --mh-particle-dark-1: var(--mh-primary-light);
+  --mh-particle-dark-2: #38bdf8;
+  --mh-particle-dark-3: #34d399;
+  --mh-particle-dark-line: var(--mh-dark-text-secondary);
+
+  /* ---------- Bootstrap / FreeDash mapping ---------- */
+  --bs-primary: var(--mh-primary);
+  --bs-primary-rgb: var(--mh-primary-rgb);
+  --bs-primary-text-emphasis: var(--mh-primary-active);
+  --bs-primary-bg-subtle: var(--mh-primary-subtle);
+  --bs-primary-border-subtle: var(--mh-primary-border);
+  --bs-blue: var(--mh-primary);
+  --bs-cyan: var(--mh-primary);
+  --bs-purple: var(--mh-primary);
+  --bs-success: var(--mh-success);
+  --bs-success-rgb: var(--mh-success-rgb);
+  --bs-green: var(--mh-success);
+  --bs-info: var(--mh-info);
+  --bs-info-rgb: var(--mh-info-rgb);
+  --bs-warning: var(--mh-warning);
+  --bs-warning-rgb: var(--mh-warning-rgb);
+  --bs-danger: var(--mh-danger);
+  --bs-danger-rgb: var(--mh-danger-rgb);
+  --bs-red: var(--mh-danger);
+  --bs-body-color: var(--mh-text);
+  --bs-body-color-rgb: 0, 0, 0;
+  --bs-heading-color: var(--mh-text);
+  --bs-emphasis-color: var(--mh-black);
+  --bs-dark: var(--mh-black);
+  --bs-dark-rgb: 0, 0, 0;
+  --bs-secondary-color: var(--mh-text-muted);
+  --bs-border-color: var(--mh-border);
+  --bs-link-color: var(--mh-primary);
+  --bs-link-color-rgb: var(--mh-primary-rgb);
+  --bs-link-hover-color: var(--mh-text-hover);
+  --bs-link-hover-color-rgb: 0, 0, 0;
+  --bs-focus-ring-color: var(--mh-focus-ring);
+}
+
+/* The template sets the dropdown colors on .dropdown-menu itself (active = #5f76e8), so :root does not reach them. */
+.dropdown-menu {
+  --bs-dropdown-link-active-bg: var(--mh-primary);
+  --bs-dropdown-link-active-color: var(--mh-white);
+  --bs-dropdown-link-hover-bg: var(--mh-primary);
+  --bs-dropdown-link-hover-color: var(--mh-white);
+}
+/* User menu: no white frame around the items, so a hovered item fills the whole box. */
+.dropdown-menu.user-dd {
+  --bs-dropdown-padding-y: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.dropdown-menu .dropdown-item:hover .svg-icon,
+.dropdown-menu .dropdown-item:active .svg-icon {
+  color: inherit;
+}
+
+/* ---------- Utility classes ---------- */
+.text-mh-primary {
+  color: var(--mh-primary) !important;
+}
+.text-mh-black {
+  color: var(--mh-black) !important;
+}
+.text-mh-muted {
+  color: var(--mh-text-muted) !important;
+}
+.bg-mh-primary {
+  background-color: var(--mh-primary) !important;
+  color: var(--mh-white) !important;
+}
+.bg-mh-subtle {
+  background-color: var(--mh-primary-subtle) !important;
+}
+.bg-mh-white {
+  background-color: var(--mh-white) !important;
+}
+.border-mh-primary {
+  border-color: var(--mh-primary) !important;
+}
+.hover-mh-black:hover {
+  color: var(--mh-text-hover) !important;
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds talk to a backend on the developer's machine (10.0.2.2 or a 192.168.x.x address).
+     Android 17 blocks apps from the local network without this runtime permission; release builds
+     use an internet server and do not need it. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+</manifest>

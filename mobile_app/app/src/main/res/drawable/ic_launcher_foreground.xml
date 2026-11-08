@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- mindHR mark (same file as frontend/public/brand/mindhr-mark.png). The 24% inset keeps it inside the
+     adaptive icon's 66dp safe zone so launchers can crop to any shape without cutting the logo. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_launcher_mark"
+    android:inset="24%" />

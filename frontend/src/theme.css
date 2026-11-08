@@ -1,0 +1,439 @@
+/*
+ * mindHR theme on top of the FreeDash template CSS (index.html). Colors come only from
+ * styles/colors.css; do not add hex or rgb values here. Logo files live in public/brand.
+ */
+
+/* The template hides .page-wrapper until its jQuery init script shows it; that script is not used here. */
+.page-wrapper {
+  display: block;
+}
+
+/* ---------- Text: black, hover black ---------- */
+body {
+  color: var(--mh-text);
+  background: var(--mh-surface-alt);
+}
+.form-check-label,
+a.link,
+ul.list-style-none li a {
+  color: var(--mh-text);
+}
+.btn {
+  --bs-btn-color: var(--mh-text);
+}
+.card .card-title,
+.page-breadcrumb .page-title,
+.text-dark {
+  color: var(--mh-text) !important;
+}
+a:hover,
+a.link:focus,
+a.link:hover,
+ul.list-style-none li a:hover {
+  color: var(--mh-text-hover);
+}
+#main-wrapper[data-layout='vertical'] .left-sidebar[data-sidebarbg='skin6'] .sidebar-nav ul .sidebar-item .sidebar-link,
+#main-wrapper[data-layout='vertical'] .left-sidebar[data-sidebarbg='skin6'] .sidebar-nav ul .sidebar-item .sidebar-link .feather-icon {
+  color: var(--mh-text);
+}
+#main-wrapper[data-layout='vertical'] .left-sidebar[data-sidebarbg='skin6'] .sidebar-nav ul .sidebar-item .sidebar-link:hover,
+#main-wrapper[data-layout='vertical'] .left-sidebar[data-sidebarbg='skin6'] .sidebar-nav ul .sidebar-item .sidebar-link:hover .feather-icon {
+  color: var(--mh-text-hover);
+}
+
+/* ---------- Buttons ---------- */
+.btn-primary,
+.btn-purple,
+.btn-cyan {
+  --bs-btn-color: var(--mh-white);
+  --bs-btn-bg: var(--mh-primary);
+  --bs-btn-border-color: var(--mh-primary);
+  --bs-btn-hover-color: var(--mh-white);
+  --bs-btn-hover-bg: var(--mh-primary-hover);
+  --bs-btn-hover-border-color: var(--mh-primary-hover);
+  --bs-btn-active-color: var(--mh-white);
+  --bs-btn-active-bg: var(--mh-primary-active);
+  --bs-btn-active-border-color: var(--mh-primary-active);
+  --bs-btn-disabled-bg: var(--mh-primary);
+  --bs-btn-disabled-border-color: var(--mh-primary);
+  --bs-btn-focus-shadow-rgb: var(--mh-primary-rgb);
+}
+.btn-info {
+  --bs-btn-bg: var(--mh-info);
+  --bs-btn-border-color: var(--mh-info);
+  --bs-btn-hover-bg: var(--mh-info-hover);
+  --bs-btn-hover-border-color: var(--mh-info-hover);
+  --bs-btn-active-bg: var(--mh-info-hover);
+  --bs-btn-active-border-color: var(--mh-info-hover);
+  --bs-btn-focus-shadow-rgb: var(--mh-info-rgb);
+}
+.btn-outline-primary,
+.btn-outline-purple,
+.btn-outline-cyan {
+  --bs-btn-color: var(--mh-primary);
+  --bs-btn-border-color: var(--mh-primary);
+  --bs-btn-hover-color: var(--mh-white);
+  --bs-btn-hover-bg: var(--mh-primary);
+  --bs-btn-hover-border-color: var(--mh-primary);
+  --bs-btn-active-bg: var(--mh-primary-hover);
+  --bs-btn-active-border-color: var(--mh-primary-hover);
+  --bs-btn-focus-shadow-rgb: var(--mh-primary-rgb);
+}
+.btn-outline-info {
+  --bs-btn-color: var(--mh-info);
+  --bs-btn-border-color: var(--mh-info);
+  --bs-btn-hover-bg: var(--mh-info);
+  --bs-btn-hover-border-color: var(--mh-info);
+  --bs-btn-active-bg: var(--mh-info);
+  --bs-btn-active-border-color: var(--mh-info);
+}
+.btn-outline-secondary {
+  --bs-btn-color: var(--mh-text);
+  --bs-btn-border-color: var(--mh-border-strong);
+  --bs-btn-hover-color: var(--mh-text-hover);
+  --bs-btn-hover-bg: var(--mh-primary-subtle);
+  --bs-btn-hover-border-color: var(--mh-primary);
+  --bs-btn-active-color: var(--mh-text-hover);
+  --bs-btn-active-bg: var(--mh-primary-subtle);
+  --bs-btn-active-border-color: var(--mh-primary);
+}
+/* Filled buttons need white text: the .btn rule above makes text dark by default. */
+.btn-success {
+  --bs-btn-color: var(--mh-white);
+  --bs-btn-hover-color: var(--mh-white);
+  --bs-btn-active-color: var(--mh-white);
+  --bs-btn-disabled-color: var(--mh-white);
+  --bs-btn-bg: var(--mh-success);
+  --bs-btn-border-color: var(--mh-success);
+}
+.btn-danger {
+  --bs-btn-color: var(--mh-white);
+  --bs-btn-hover-color: var(--mh-white);
+  --bs-btn-active-color: var(--mh-white);
+  --bs-btn-disabled-color: var(--mh-white);
+  --bs-btn-bg: var(--mh-danger);
+  --bs-btn-border-color: var(--mh-danger);
+}
+.btn-outline-danger {
+  --bs-btn-color: var(--mh-danger);
+  --bs-btn-border-color: var(--mh-danger);
+  --bs-btn-hover-bg: var(--mh-danger);
+  --bs-btn-hover-border-color: var(--mh-danger);
+  --bs-btn-active-bg: var(--mh-danger);
+  --bs-btn-active-border-color: var(--mh-danger);
+}
+
+/* ---------- Badges, links, forms ---------- */
+.text-bg-primary,
+.text-bg-purple,
+.text-bg-cyan {
+  background-color: rgba(var(--mh-primary-rgb), var(--bs-bg-opacity, 1)) !important;
+}
+.text-bg-info {
+  background-color: rgba(var(--mh-info-rgb), var(--bs-bg-opacity, 1)) !important;
+}
+.link-primary,
+.link-purple,
+.link-cyan {
+  color: var(--mh-primary) !important;
+}
+.link-info {
+  color: var(--mh-info) !important;
+}
+.form-check-input:checked,
+.form-check-input[type='checkbox']:indeterminate {
+  background-color: var(--mh-primary);
+  border-color: var(--mh-primary);
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--mh-primary);
+  box-shadow: 0 0 0 0.2rem var(--mh-focus-ring);
+}
+.form-range::-webkit-slider-thumb {
+  background-color: var(--mh-primary);
+}
+.form-range::-moz-range-thumb {
+  background-color: var(--mh-primary);
+}
+
+/* ---------- Navigation ---------- */
+.nav-pills {
+  --bs-nav-pills-link-active-bg: var(--mh-primary);
+}
+.nav-tabs .nav-link {
+  color: var(--mh-text);
+}
+.nav-tabs .nav-link.active {
+  color: var(--mh-primary);
+}
+.nav-tabs.nav-bordered li a.active {
+  border-bottom-color: var(--mh-primary);
+}
+.pagination {
+  --bs-pagination-color: var(--mh-text);
+  --bs-pagination-hover-color: var(--mh-text-hover);
+  --bs-pagination-hover-bg: var(--mh-primary-subtle);
+  --bs-pagination-active-color: var(--mh-white);
+  --bs-pagination-active-bg: var(--mh-primary);
+  --bs-pagination-active-border-color: var(--mh-primary);
+  --bs-pagination-disabled-color: var(--mh-text-muted);
+  --bs-pagination-disabled-bg: var(--mh-white);
+  --bs-pagination-focus-box-shadow: 0 0 0 0.25rem var(--mh-focus-ring);
+}
+.progress,
+.progress-stacked {
+  --bs-progress-bar-bg: var(--mh-primary);
+}
+
+/* Sidebar: the selected item uses the logo gradient instead of the template's purple one. */
+.sidebar-nav #sidebarnav .sidebar-item.selected > .sidebar-link {
+  background: var(--mh-gradient);
+  box-shadow: 0 7px 12px 0 var(--mh-focus-ring);
+}
+
+/* ---------- DataTable (`datatable` mode): tinted header, sort arrows like the DataTables Bootstrap skin ---------- */
+.mh-datatable {
+  --bs-table-color: var(--mh-text);
+  --bs-table-striped-color: var(--mh-text);
+  --bs-table-hover-color: var(--mh-text-hover);
+  --bs-table-border-color: var(--mh-border);
+  --bs-table-striped-bg: var(--mh-surface-alt);
+  --bs-table-accent-bg: transparent;
+  --bs-table-hover-bg: var(--mh-row-hover);
+}
+.mh-datatable > thead th {
+  background: var(--mh-primary-subtle);
+  color: var(--mh-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.mh-datatable > tbody td {
+  vertical-align: middle;
+}
+.mh-datatable > tbody > tr:only-child > td[colspan] {
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--mh-text-muted);
+  padding: 2rem 1rem;
+}
+.mh-datatable th.sorting {
+  position: relative;
+  padding-right: 1.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+.mh-datatable th.sorting::before,
+.mh-datatable th.sorting::after {
+  position: absolute;
+  right: 0.55rem;
+  font-size: 0.7rem;
+  line-height: 1;
+  opacity: 0.25;
+}
+.mh-datatable th.sorting::before {
+  content: '▲';
+  bottom: 52%;
+}
+.mh-datatable th.sorting::after {
+  content: '▼';
+  top: 52%;
+}
+.mh-datatable th.sorting-asc::before,
+.mh-datatable th.sorting-desc::after {
+  opacity: 1;
+  color: var(--mh-primary);
+}
+.mh-datatable-wrapper .pagination .page-link {
+  cursor: pointer;
+}
+.mh-datatable-wrapper label {
+  color: var(--mh-text);
+}
+.mh-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+/* Top-bar logo */
+.navbar-brand .mh-brand-logo {
+  height: 34px;
+  width: auto;
+}
+
+/* Form dialogs wrap .modal-body and .modal-footer in a <form>. Bootstrap's scrollable modal only
+   scrolls a .modal-body that is a direct child of .modal-content, so let the form pass the flex
+   layout through; otherwise tall forms push the footer buttons off the screen. */
+.modal-dialog-scrollable .modal-content > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.modal-dialog-scrollable .modal-content > form > .modal-body {
+  overflow-y: auto;
+}
+
+/* The template scrolls the sidebar with a JS plugin we do not load; let it scroll natively so the
+   lower menu items are reachable on short screens. */
+.left-sidebar .scroll-sidebar {
+  overflow-y: auto;
+}
+
+/* Top bar user menu ("Hello, <name>"): one text color, the same as the name, with no hover change. */
+.topbar .navbar-nav .nav-item.dropdown > .nav-link,
+.topbar .navbar-nav .nav-item.dropdown > .nav-link:hover,
+.topbar .navbar-nav .nav-item.dropdown > .nav-link:focus {
+  color: var(--mh-text);
+}
+
+/* ---------- Phones and tablets ---------- */
+
+.mh-search {
+  min-width: 260px;
+}
+
+/* Page header actions sit on the right on wide screens and under the title on small ones. */
+.mh-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Dims the page while the ☰ sidebar is open below lg; tapping it closes the sidebar. */
+.mh-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 39; /* under the sidebar (40) and the top bar (50), over the page */
+  background: rgba(15, 23, 42, 0.45);
+}
+
+@media (max-width: 991.98px) {
+  /* Below the top bar (z-index 50) so its ✕ button stays visible to close the menu. */
+  .left-sidebar {
+    z-index: 40;
+    transition: left 0.2s ease;
+  }
+  /* The template's "mini-sidebar" hide rule comes after its show rule in style.min.css, so
+     re-state the open state with higher specificity. */
+  #main-wrapper[data-sidebartype='mini-sidebar'].show-sidebar .left-sidebar {
+    left: 0;
+    box-shadow: 0 0 24px rgba(15, 23, 42, 0.25);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .page-breadcrumb {
+    padding: 16px 16px 0;
+  }
+  .page-breadcrumb .breadcrumb {
+    display: none;
+  }
+  .mh-page-actions {
+    justify-content: stretch;
+    margin-top: 0.75rem;
+  }
+  .mh-page-actions > * {
+    flex: 1 1 auto;
+  }
+  .page-wrapper > .container-fluid {
+    padding: 16px;
+  }
+
+  .mh-search {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  /* Tabs scroll sideways instead of stacking. */
+  .mh-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .mh-tabs .nav-link {
+    white-space: nowrap;
+  }
+
+  /* Data table controls: one per line, search full width. */
+  .mh-datatable-wrapper label {
+    width: 100%;
+  }
+  .mh-datatable-wrapper input[type='search'] {
+    flex: 1;
+  }
+  .mh-datatable-wrapper .pagination {
+    flex-wrap: wrap;
+  }
+}
+
+/* Tables become one card per row on phones: each cell shows "Column: value". */
+@media (max-width: 575.98px) {
+  .table.mh-stack thead {
+    display: none;
+  }
+  .table.mh-stack,
+  .table.mh-stack tbody,
+  .table.mh-stack tr,
+  .table.mh-stack td {
+    display: block;
+    width: 100%;
+  }
+  .table.mh-stack tr {
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--mh-border);
+    border-radius: 12px;
+    background: var(--mh-surface);
+    padding: 0.5rem 0.75rem;
+  }
+  .table.mh-stack td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    border: 0;
+    padding: 0.35rem 0;
+    text-align: right;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .table.mh-stack td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-weight: 600;
+    color: var(--mh-text-muted);
+    text-align: left;
+  }
+  /* Action cells (no header) and single "loading / empty" cells span the card. */
+  .table.mh-stack td[data-label='']::before,
+  .table.mh-stack td[colspan]::before {
+    content: none;
+  }
+  .table.mh-stack td[data-label=''] {
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--mh-border);
+    margin-top: 0.25rem;
+  }
+  .table.mh-stack td[colspan] {
+    justify-content: center;
+    text-align: center;
+  }
+  .table.mh-stack.border {
+    border: 0 !important;
+  }
+  .table-responsive {
+    overflow-x: visible;
+  }
+}

@@ -1,0 +1,364 @@
+/*
+ * Login screen only; everything is scoped under .login-page so the FreeDash styles elsewhere are untouched.
+ * Colors come from styles/colors.css.
+ */
+.login-page {
+  --bg-start: var(--mh-login-bg-start);
+  --bg-end: var(--mh-login-bg-end);
+  --card-bg: var(--mh-glass);
+  --card-border: var(--mh-glass-border);
+  --text-primary: var(--mh-text);
+  --text-secondary: var(--mh-text);
+  --text-muted: var(--mh-text-muted);
+  --input-bg: var(--mh-glass-input);
+  --input-border: var(--mh-border-strong);
+  --input-hover: var(--mh-primary-border);
+  --ring: var(--mh-primary);
+  --ring-soft: var(--mh-focus-ring);
+  --btn-bg: var(--mh-primary);
+  --btn-hover: var(--mh-primary-hover);
+  --btn-text: var(--mh-white);
+  --btn-shadow: var(--mh-shadow-primary);
+  --glow: var(--mh-focus-ring);
+  --card-shadow: var(--mh-shadow-card);
+  --toggle-bg: var(--mh-toggle-bg);
+  --toggle-icon: var(--mh-text);
+  --error: var(--mh-danger);
+  --error-bg: var(--mh-danger-subtle);
+  --vignette: var(--mh-vignette);
+
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(150deg, var(--bg-start), var(--bg-end));
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.35s ease, color 0.25s ease;
+}
+
+.login-page[data-theme='dark'] {
+  --bg-start: var(--mh-dark-bg);
+  --bg-end: var(--mh-dark-bg-alt);
+  --card-bg: var(--mh-dark-surface);
+  --card-border: var(--mh-dark-glass-border);
+  --text-primary: var(--mh-dark-text);
+  --text-secondary: var(--mh-dark-text-secondary);
+  --text-muted: var(--mh-dark-text-muted);
+  --input-bg: var(--mh-dark-input);
+  --input-border: var(--mh-dark-border);
+  --input-hover: var(--mh-dark-border-strong);
+  --ring: var(--mh-primary-light);
+  --ring-soft: var(--mh-focus-ring);
+  --btn-bg: var(--mh-primary-light);
+  --btn-hover: var(--mh-primary-light-hover);
+  --btn-text: var(--mh-dark-bg);
+  --btn-shadow: var(--mh-shadow-primary);
+  --glow: var(--mh-focus-ring);
+  --card-shadow: var(--mh-shadow-card-dark);
+  --toggle-bg: var(--mh-dark-border);
+  --toggle-icon: var(--mh-dark-text);
+  --error: var(--mh-dark-danger);
+  --error-bg: var(--mh-dark-danger-subtle);
+  --vignette: var(--mh-vignette-dark);
+}
+
+.login-page *,
+.login-page *::before,
+.login-page *::after {
+  box-sizing: border-box;
+}
+
+.login-bg-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  display: block;
+}
+
+/* Radial vignette above the canvas, below the card. */
+.login-page::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%, transparent 0%, transparent 40%, var(--vignette) 100%);
+}
+
+/* ---------- Card ---------- */
+.login-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 440px;
+  margin: auto;
+  padding: 2.5rem 2.25rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 2rem;
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  overflow: hidden;
+  transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  inset: -40% auto auto -20%;
+  width: 70%;
+  height: 70%;
+  background: radial-gradient(circle, var(--glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.login-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Header ---------- */
+.login-brand {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.login-brand-logo {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+.login-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.login-page .login-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.login-theme-toggle {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--card-border);
+  border-radius: 50%;
+  background: var(--toggle-bg);
+  color: var(--toggle-icon);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.25s ease, color 0.25s ease;
+}
+
+.login-theme-toggle:hover {
+  transform: scale(1.06);
+}
+.login-theme-toggle:active {
+  transform: scale(0.96);
+}
+
+.login-welcome {
+  margin: 0 0 1.9rem;
+  font-size: 0.925rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* ---------- Fields ---------- */
+.login-field {
+  margin-bottom: 1.35rem;
+}
+
+.login-page .login-field label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.825rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text-secondary);
+}
+
+.login-input-wrapper {
+  position: relative;
+}
+
+.login-field-icon {
+  position: absolute;
+  top: 50%;
+  left: 1.05rem;
+  transform: translateY(-50%);
+  width: 17px;
+  height: 17px;
+  color: var(--text-muted);
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.login-input-wrapper:focus-within .login-field-icon {
+  color: var(--ring);
+}
+
+.login-page .login-input-wrapper input {
+  width: 100%;
+  height: 52px;
+  padding: 0 3.25rem 0 2.9rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  background: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  border-radius: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.25s ease;
+}
+
+.login-page .login-input-wrapper input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+
+.login-page .login-input-wrapper input:hover {
+  border-color: var(--input-hover);
+}
+
+.login-page .login-input-wrapper input:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 4px var(--ring-soft);
+}
+
+.login-page .login-input-wrapper input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.login-field-error {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--error);
+}
+
+.login-toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 0.55rem;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 0.65rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.login-toggle-password:hover {
+  color: var(--text-primary);
+  background: var(--mh-hover-overlay);
+}
+
+/* ---------- Error and button ---------- */
+.login-alert {
+  margin-bottom: 1.35rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: 0.95rem;
+  font-size: 0.875rem;
+  color: var(--error);
+  background: var(--error-bg);
+  border: 1px solid color-mix(in srgb, var(--error) 30%, transparent);
+}
+
+.login-btn {
+  width: 100%;
+  height: 52px;
+  margin-top: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-family: inherit;
+  font-size: 0.975rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--btn-text);
+  background: var(--btn-bg);
+  border: none;
+  border-radius: 0.95rem;
+  cursor: pointer;
+  box-shadow: var(--btn-shadow);
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.login-btn:hover:not(:disabled) {
+  background: var(--btn-hover);
+  transform: translateY(-1px);
+}
+
+.login-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.login-footnote {
+  margin: 1.6rem 0 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.login-page :is(.login-theme-toggle, .login-toggle-password, .login-btn):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+@media (max-width: 460px) {
+  .login-card {
+    padding: 2rem 1.5rem;
+    border-radius: 1.75rem;
+  }
+  .login-page .login-header h1 {
+    font-size: 1.5rem;
+  }
+  .login-theme-toggle {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-page *,
+  .login-page *::before,
+  .login-page *::after {
+    transition-duration: 0.01ms !important;
+  }
+  .login-bg-canvas {
+    display: none;
+  }
+}

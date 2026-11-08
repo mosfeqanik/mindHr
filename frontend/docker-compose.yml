@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    container_name: mindhr-web
+    ports:
+      - "3000:80"
+    networks:
+      - mindhr-net
+
+# Shared with backend/docker-compose.yml so nginx can reach http://app:8080.
+# Start the backend first (it creates the network).
+networks:
+  mindhr-net:
+    external: true
+    name: backend_mindhr-net
