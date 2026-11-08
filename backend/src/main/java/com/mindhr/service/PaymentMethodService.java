@@ -36,6 +36,7 @@ public class PaymentMethodService {
 
     @Transactional
     public PaymentMethodResponse create(PaymentMethodRequest request) {
+        TenantContext.requirePlatformStaff();
         Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
@@ -48,6 +49,7 @@ public class PaymentMethodService {
 
     @Transactional
     public PaymentMethodResponse update(Long id, PaymentMethodRequest request) {
+        TenantContext.requirePlatformStaff();
         PaymentMethod paymentMethod = findAccessibleEntity(id);
         applyRequest(paymentMethod, request);
         return PaymentMethodMapper.toResponse(paymentMethod);
@@ -55,6 +57,7 @@ public class PaymentMethodService {
 
     @Transactional
     public void delete(Long id) {
+        TenantContext.requirePlatformStaff();
         PaymentMethod paymentMethod = findAccessibleEntity(id);
         paymentMethodRepository.delete(paymentMethod);
     }

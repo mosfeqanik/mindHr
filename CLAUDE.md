@@ -69,6 +69,11 @@ docker compose down
   `roleIds` on a user replaces all roles.
 - The web app cannot yet set an employee's branch, department or manager, or change a user's roles; use Swagger
   (see the manual).
+- **Billing is platform-only for writes.** Subscriptions, invoices, payments (and receipt issuing) and payment methods:
+  org users (any role, even `ORG_OWNER`) can only read their own org's records; create/update/status/plan/delete calls
+  `TenantContext.requirePlatformStaff()` (SUPER_ADMIN or SAAS_STAFF) and returns 403 otherwise. Covered by the E2E
+  "Billing" section. `SubscriptionService.createInitial` has no check because only `OrganizationService.create` (already
+  platform-only) calls it.
 - **Open security gap:** `UserController` and `RoleController` have no `@PreAuthorize`, so any signed-in org user (even
   `EMPLOYEE`) can list the org's users and roles, and likely `PUT /api/users/{id}` with `roleIds` (privilege escalation).
   Needs a permission check before production.
