@@ -1,0 +1,27 @@
+# Render Blueprint for the mindHR API.
+# Render dashboard > New > Blueprint > pick this repo (branch main). Render reads this file.
+# Values marked `sync: false` are typed once in the dashboard and are never stored in git.
+services:
+  - type: web
+    name: mindhr-api
+    runtime: docker
+    plan: free
+    branch: main
+    rootDir: backend              # only changes under backend/ trigger a redeploy
+    dockerfilePath: ./Dockerfile  # relative to rootDir
+    dockerContext: .
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: DB_URL               # Neon JDBC URL: jdbc:postgresql://<host>/<db>?user=...&password=...&sslmode=require
+        sync: false
+      - key: JWT_SECRET           # Render generates a random base64 256-bit value (what JwtService expects)
+        generateValue: true
+      - key: JWT_EXPIRATION_MS
+        value: "3600000"
+      - key: SEED_ENABLED
+        value: "true"
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false

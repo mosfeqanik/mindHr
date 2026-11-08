@@ -32,4 +32,8 @@ COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 
 # Start application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Keep the heap inside the container memory limit (Render free plan has 512 MB).
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75"
+
+# sh -c so $JAVA_OPTS is expanded; exec keeps java as PID 1 so it gets stop signals.
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

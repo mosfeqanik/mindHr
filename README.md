@@ -63,6 +63,18 @@ npm run build
 - Sign in with an organization user that has an employee profile (users created on the Employees page get one).
 - Toolchain: Gradle 9.7, Android Gradle Plugin 9.5 (built-in Kotlin), Kotlin 2.4, compileSdk 37, minSdk 26.
 
+## Deploy the API on Render
+
+`render.yaml` (repo root) is a Render Blueprint: a Docker web service built from `backend/` on branch `main`.
+
+1. Render dashboard > **New > Blueprint** > connect this repo > branch `main`.
+2. Enter the secret values when asked: `DB_URL`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`. Render generates `JWT_SECRET`.
+3. When the deploy is live, open `https://<service>.onrender.com/swagger-ui.html`.
+4. Mobile app: `./gradlew installDebug -PapiBaseUrl=https://<service>.onrender.com/`.
+
+The app listens on `$PORT` (set by Render). The free plan sleeps after 15 minutes idle; the first request then takes
+30-60 s. The seed admin is created only when the database has **no users yet**.
+
 ## API docs
 
 - **Swagger UI:** http://localhost:8080/swagger-ui.html (OpenAPI JSON at `/v3/api-docs`). Call `POST /api/auth/login`,
