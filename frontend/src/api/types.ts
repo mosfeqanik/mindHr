@@ -486,6 +486,31 @@ export interface Receipt {
   issuedAt: string
 }
 
+export const COLLECTION_METHODS = ['CASH', 'BKASH', 'CARD'] as const
+export type CollectionMethod = (typeof COLLECTION_METHODS)[number]
+
+export interface SubscriptionPaymentQuote {
+  subscriptionId: number
+  planName: string
+  amount: number
+  currency: string
+  periodStart: string
+  periodEnd: string
+}
+export interface SubscriptionPaymentRequest {
+  method: CollectionMethod
+  transactionId?: string | null
+  notes?: string | null
+}
+export interface SubscriptionPaymentResult {
+  subscription: Subscription
+  invoice: Invoice
+  payment: Payment
+  receipt: Receipt
+  periodStart: string
+  periodEnd: string
+}
+
 export const CONTRACT_STATUSES = ['PENDING', 'ACTIVE', 'EXPIRED', 'TERMINATED'] as const
 export type ContractStatus = (typeof CONTRACT_STATUSES)[number]
 

@@ -5770,6 +5770,72 @@
               }
             }
           }
+        },
+        {
+          "name": "GET /api/subscriptions/{id}/payment-quote",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/:id/payment-quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions",
+                ":id",
+                "payment-quote"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Platform staff: amount and period a one-month payment would cover."
+          }
+        },
+        {
+          "name": "POST /api/subscriptions/{id}/collect-payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/:id/collect-payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions",
+                ":id",
+                "collect-payment"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"CASH\",\n  \"transactionId\": \"string\",\n  \"notes\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Platform staff: record one month paid by cash / bKash / card (invoice + payment + receipt, renewal +1 month)."
+          }
         }
       ]
     },

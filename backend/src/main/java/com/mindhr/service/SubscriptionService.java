@@ -149,7 +149,7 @@ public class SubscriptionService {
         return SubscriptionMapper.toResponse(subscription);
     }
 
-    private void recordHistory(Subscription subscription, SubscriptionStatus fromStatus, SubscriptionStatus toStatus,
+    void recordHistory(Subscription subscription, SubscriptionStatus fromStatus, SubscriptionStatus toStatus,
                                 SubscriptionPlan fromPlan, SubscriptionPlan toPlan, String note) {
         SubscriptionHistory history = new SubscriptionHistory();
         history.setSubscription(subscription);

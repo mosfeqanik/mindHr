@@ -10,4 +10,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByOrganizationId(Long organizationId);
 
     List<Payment> findByInvoiceId(Long invoiceId);
+
+    boolean existsByGatewayTransactionIdIgnoreCase(String gatewayTransactionId);
 }

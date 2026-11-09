@@ -5,9 +5,16 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { errorMessage } from '../../api/client'
 import { subscriptionPlansApi, subscriptionsApi } from '../../api/platform'
-import { SUBSCRIPTION_STATUSES, type Subscription, type SubscriptionStatus } from '../../api/types'
+import {
+  COLLECTION_METHODS,
+  SUBSCRIPTION_STATUSES,
+  type CollectionMethod,
+  type Subscription,
+  type SubscriptionPaymentResult,
+  type SubscriptionStatus,
+} from '../../api/types'
 import { Button, DataTable, ErrorBox, Field, Input, Modal, ModalFooter, PageHeader, Select, type Column } from '../../components/ui'
-import { label, orNull } from '../../lib/format'
+import { formatMoney, label, orNull } from '../../lib/format'
 import { Badge, Card, HistoryModal, StatusModal } from './shared'
 
 const STATUS_BADGE: Record<SubscriptionStatus, string> = {
@@ -170,6 +177,92 @@ function PlanModal({ item, onClose, onDone }: { item: Subscription; onClose: () 
   )
 }
 
+const METHOD_LABEL: Record<CollectionMethod, string> = { CASH: 'Cash', BKASH: 'bKash', CARD: 'Card' }
+
+/** Take one month of the current plan price; the backend creates invoice, payment and receipt in one go. */
+function CollectPaymentModal({ item, onClose, onDone }: { item: Subscription; onClose: () => void; onDone: () => void }) {
+  const quote = useQuery({ queryKey: ['subscription-quote', item.id], queryFn: () => subscriptionsApi.paymentQuote(item.id) })
+  const [method, setMethod] = useState<CollectionMethod>('CASH')
+  const [transactionId, setTransactionId] = useState('')
+  const [notes, setNotes] = useState('')
+  const [result, setResult] = useState<SubscriptionPaymentResult | null>(null)
+  const save = useMutation({
+    mutationFn: () =>
+      subscriptionsApi.collectPayment(item.id, { method, transactionId: orNull(transactionId), notes: orNull(notes) }),
+    onSuccess: setResult,
+  })
+  const needsTrx = method === 'BKASH' && transactionId.trim() === ''
+  const q = quote.data
+
+  if (result) {
+    return (
+      <Modal title="Payment received" onClose={onDone}>
+        <div className="modal-body">
+          <p className="mb-2">
+            {formatMoney(result.payment.amount)} {result.payment.currency} by {METHOD_LABEL[method]} for{' '}
+            {result.periodStart} to {result.periodEnd}.
+          </p>
+          <ul className="small text-muted mb-0">
+            <li>Invoice {result.invoice.invoiceNumber} (paid)</li>
+            <li>Receipt {result.receipt.receiptNumber}</li>
+            <li>Next renewal: {result.subscription.renewalDate}</li>
+          </ul>
+        </div>
+        <div className="modal-footer">
+          <Button onClick={onDone}>Done</Button>
+        </div>
+      </Modal>
+    )
+  }
+
+  return (
+    <Modal title="Collect monthly payment" onClose={onClose}>
+      <div className="modal-body">
+        {quote.error && <ErrorBox message={errorMessage(quote.error)} />}
+        {save.error && <ErrorBox message={errorMessage(save.error)} />}
+        {q ? (
+          <div className="alert alert-light border">
+            <div className="text-muted small">{q.planName} &middot; 1 month</div>
+            <div className="fs-4 text-dark">
+              {formatMoney(q.amount)} {q.currency}
+            </div>
+            <div className="small">
+              Covers {q.periodStart} to {q.periodEnd}
+            </div>
+          </div>
+        ) : (
+          !quote.error && <p className="text-muted">Loading amount...</p>
+        )}
+        <Field label="Payment method">
+          <Select value={method} onChange={(e) => setMethod(e.target.value as CollectionMethod)}>
+            {COLLECTION_METHODS.map((m) => (
+              <option key={m} value={m}>
+                {METHOD_LABEL[m]}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        {method !== 'CASH' && (
+          <Field label={method === 'BKASH' ? 'bKash TrxID' : 'Card approval / reference (optional)'}>
+            <Input value={transactionId} onChange={(e) => setTransactionId(e.target.value)} maxLength={100} />
+          </Field>
+        )}
+        <Field label="Note (optional)">
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </Field>
+      </div>
+      <div className="modal-footer">
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button disabled={!q || needsTrx || save.isPending} onClick={() => save.mutate()}>
+          {save.isPending ? 'Saving...' : q ? `Receive ${formatMoney(q.amount)} ${q.currency}` : 'Receive'}
+        </Button>
+      </div>
+    </Modal>
+  )
+}
+
 function SubscriptionHistory({ item, onClose }: { item: Subscription; onClose: () => void }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ['subscription-history', item.id],
@@ -185,7 +278,7 @@ function SubscriptionHistory({ item, onClose }: { item: Subscription; onClose: (
   return <HistoryModal title="Subscription history" rows={rows} loading={isLoading} error={error} onClose={onClose} />
 }
 
-type Action = { kind: 'edit' | 'status' | 'plan' | 'history'; item: Subscription } | { kind: 'new' }
+type Action = { kind: 'edit' | 'status' | 'plan' | 'history' | 'pay'; item: Subscription } | { kind: 'new' }
 
 export default function SubscriptionsPage() {
   const qc = useQueryClient()
@@ -209,6 +302,11 @@ export default function SubscriptionsPage() {
       className: 'text-end text-nowrap',
       cell: (s) => (
         <>
+          {s.status !== 'CANCELLED' && (
+            <Button size="sm" className="me-2" onClick={() => setAction({ kind: 'pay', item: s })}>
+              Collect payment
+            </Button>
+          )}
           <Button variant="secondary" size="sm" className="me-2" onClick={() => setAction({ kind: 'status', item: s })}>
             Status
           </Button>
@@ -248,6 +346,16 @@ export default function SubscriptionsPage() {
           onClose={() => setAction(null)}
           onSave={(status, note) => subscriptionsApi.changeStatus(action.item.id, status, note)}
           onDone={done}
+        />
+      )}
+      {action?.kind === 'pay' && (
+        <CollectPaymentModal
+          item={action.item}
+          onClose={() => setAction(null)}
+          onDone={() => {
+            done()
+            for (const key of ['invoices', 'payments', 'receipts']) qc.invalidateQueries({ queryKey: [key] })
+          }}
         />
       )}
       {action?.kind === 'history' && <SubscriptionHistory item={action.item} onClose={() => setAction(null)} />}

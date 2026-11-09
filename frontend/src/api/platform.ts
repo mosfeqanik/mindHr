@@ -17,6 +17,9 @@ import type {
   Receipt,
   Subscription,
   SubscriptionHistory,
+  SubscriptionPaymentQuote,
+  SubscriptionPaymentRequest,
+  SubscriptionPaymentResult,
   SubscriptionPlan,
   SubscriptionPlanRequest,
   SubscriptionRequest,
@@ -55,6 +58,9 @@ export const subscriptionsApi = {
     api.patch<Subscription>(`${subs}/${id}/status`, { status, note }).then((r) => r.data),
   changePlan: (id: number, planId: number, note?: string | null) =>
     api.patch<Subscription>(`${subs}/${id}/plan`, { planId, note }).then((r) => r.data),
+  paymentQuote: (id: number) => api.get<SubscriptionPaymentQuote>(`${subs}/${id}/payment-quote`).then((r) => r.data),
+  collectPayment: (id: number, body: SubscriptionPaymentRequest) =>
+    api.post<SubscriptionPaymentResult>(`${subs}/${id}/collect-payment`, body).then((r) => r.data),
 }
 
 export const invoicesApi = {

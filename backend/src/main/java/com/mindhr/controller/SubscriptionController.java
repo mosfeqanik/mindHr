@@ -2,6 +2,9 @@ package com.mindhr.controller;
 
 import com.mindhr.dto.CurrentPlanResponse;
 import com.mindhr.dto.SubscriptionHistoryResponse;
+import com.mindhr.dto.SubscriptionPaymentQuote;
+import com.mindhr.dto.SubscriptionPaymentRequest;
+import com.mindhr.dto.SubscriptionPaymentResponse;
 import com.mindhr.dto.SubscriptionPlanChangeRequest;
 import com.mindhr.dto.SubscriptionRequest;
 import com.mindhr.dto.SubscriptionResponse;
@@ -9,6 +12,7 @@ import com.mindhr.dto.SubscriptionStatusChangeRequest;
 import com.mindhr.dto.SubscriptionUpdateRequest;
 import com.mindhr.security.TenantContext;
 import com.mindhr.service.PlanLimitService;
+import com.mindhr.service.SubscriptionPaymentService;
 import com.mindhr.service.SubscriptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +36,7 @@ public class SubscriptionController {
 
     private final SubscriptionService subscriptionService;
     private final PlanLimitService planLimitService;
+    private final SubscriptionPaymentService subscriptionPaymentService;
 
     @GetMapping
     public ResponseEntity<List<SubscriptionResponse>> list(
@@ -76,5 +81,18 @@ public class SubscriptionController {
     public ResponseEntity<SubscriptionResponse> changePlan(
             @PathVariable Long id, @Valid @RequestBody SubscriptionPlanChangeRequest request) {
         return ResponseEntity.ok(subscriptionService.changePlan(id, request));
+    }
+
+    /** Platform staff: amount and period a one-month payment would cover. */
+    @GetMapping("/{id}/payment-quote")
+    public ResponseEntity<SubscriptionPaymentQuote> paymentQuote(@PathVariable Long id) {
+        return ResponseEntity.ok(subscriptionPaymentService.quote(id));
+    }
+
+    /** Platform staff: record one month paid by cash / bKash / card (invoice + payment + receipt, renewal +1 month). */
+    @PostMapping("/{id}/collect-payment")
+    public ResponseEntity<SubscriptionPaymentResponse> collectPayment(
+            @PathVariable Long id, @Valid @RequestBody SubscriptionPaymentRequest request) {
+        return ResponseEntity.status(201).body(subscriptionPaymentService.collect(id, request));
     }
 }
