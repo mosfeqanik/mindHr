@@ -6,11 +6,14 @@ import { z } from 'zod'
 import { errorMessage } from '../../api/client'
 import { invoicesApi, paymentsApi, subscriptionsApi } from '../../api/platform'
 import {
+  CHANNEL_LABEL,
   INVOICE_STATUSES,
+  PAYMENT_CHANNELS,
   PAYMENT_STATUSES,
   type Invoice,
   type InvoiceStatus,
   type Payment,
+  type PaymentChannel,
   type PaymentStatus,
 } from '../../api/types'
 import {
@@ -212,6 +215,7 @@ const paymentSchema = z.object({
   invoiceId: z.string().min(1, 'Invoice is required'),
   amount,
   currency,
+  channel: z.string(),
   gateway: z.string().max(50),
   gatewayTransactionId: z.string().max(100),
 })
@@ -226,7 +230,7 @@ function PaymentModal({ invoices, onClose, onSaved }: { invoices: Invoice[]; onC
     formState: { errors, isSubmitting },
   } = useForm<PaymentForm>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: { invoiceId: '', amount: '', currency: 'USD', gateway: '', gatewayTransactionId: '' },
+    defaultValues: { invoiceId: '', amount: '', currency: 'USD', channel: '', gateway: '', gatewayTransactionId: '' },
   })
 
   const onSubmit = async (v: PaymentForm) => {
@@ -236,6 +240,7 @@ function PaymentModal({ invoices, onClose, onSaved }: { invoices: Invoice[]; onC
         invoiceId: Number(v.invoiceId),
         amount: Number(v.amount),
         currency: orNull(v.currency.toUpperCase()),
+        channel: orNull(v.channel) as PaymentChannel | null,
         gateway: orNull(v.gateway),
         gatewayTransactionId: orNull(v.gatewayTransactionId),
       })
@@ -283,6 +288,18 @@ function PaymentModal({ invoices, onClose, onSaved }: { invoices: Invoice[]; onC
               </Field>
             </div>
             <div className="col-md-6">
+              <Field label="Method">
+                <Select {...register('channel')}>
+                  <option value="">Not set</option>
+                  {PAYMENT_CHANNELS.map((c) => (
+                    <option key={c} value={c}>
+                      {CHANNEL_LABEL[c]}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+            <div className="col-md-6">
               <Field label="Gateway" error={errors.gateway?.message}>
                 <Input placeholder="e.g. Stripe, bank transfer" {...register('gateway')} />
               </Field>
@@ -327,6 +344,7 @@ function PaymentsTab() {
   const columns: Column<Payment>[] = [
     { header: 'Invoice', cell: (p) => <span className="text-dark font-weight-medium">{invoiceNumber(p.invoiceId)}</span> },
     { header: 'Amount', cell: (p) => money(p.amount, p.currency) },
+    { header: 'Method', cell: (p) => (p.channel ? CHANNEL_LABEL[p.channel] : '-') },
     { header: 'Gateway', cell: (p) => p.gateway ?? '-' },
     { header: 'Transaction', cell: (p) => p.gatewayTransactionId ?? '-' },
     { header: 'Paid', cell: (p) => (p.paidAt ? p.paidAt.slice(0, 10) : '-') },

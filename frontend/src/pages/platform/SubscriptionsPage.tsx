@@ -6,9 +6,10 @@ import { z } from 'zod'
 import { errorMessage } from '../../api/client'
 import { subscriptionPlansApi, subscriptionsApi } from '../../api/platform'
 import {
-  COLLECTION_METHODS,
+  CHANNEL_LABEL,
+  PAYMENT_CHANNELS,
   SUBSCRIPTION_STATUSES,
-  type CollectionMethod,
+  type PaymentChannel,
   type Subscription,
   type SubscriptionPaymentResult,
   type SubscriptionStatus,
@@ -177,12 +178,10 @@ function PlanModal({ item, onClose, onDone }: { item: Subscription; onClose: () 
   )
 }
 
-const METHOD_LABEL: Record<CollectionMethod, string> = { CASH: 'Cash', BKASH: 'bKash', CARD: 'Card' }
-
 /** Take one month of the current plan price; the backend creates invoice, payment and receipt in one go. */
 function CollectPaymentModal({ item, onClose, onDone }: { item: Subscription; onClose: () => void; onDone: () => void }) {
   const quote = useQuery({ queryKey: ['subscription-quote', item.id], queryFn: () => subscriptionsApi.paymentQuote(item.id) })
-  const [method, setMethod] = useState<CollectionMethod>('CASH')
+  const [method, setMethod] = useState<PaymentChannel>('CASH')
   const [transactionId, setTransactionId] = useState('')
   const [notes, setNotes] = useState('')
   const [result, setResult] = useState<SubscriptionPaymentResult | null>(null)
@@ -199,7 +198,7 @@ function CollectPaymentModal({ item, onClose, onDone }: { item: Subscription; on
       <Modal title="Payment received" onClose={onDone}>
         <div className="modal-body">
           <p className="mb-2">
-            {formatMoney(result.payment.amount)} {result.payment.currency} by {METHOD_LABEL[method]} for{' '}
+            {formatMoney(result.payment.amount)} {result.payment.currency} by {CHANNEL_LABEL[method]} for{' '}
             {result.periodStart} to {result.periodEnd}.
           </p>
           <ul className="small text-muted mb-0">
@@ -234,10 +233,10 @@ function CollectPaymentModal({ item, onClose, onDone }: { item: Subscription; on
           !quote.error && <p className="text-muted">Loading amount...</p>
         )}
         <Field label="Payment method">
-          <Select value={method} onChange={(e) => setMethod(e.target.value as CollectionMethod)}>
-            {COLLECTION_METHODS.map((m) => (
+          <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentChannel)}>
+            {PAYMENT_CHANNELS.map((m) => (
               <option key={m} value={m}>
-                {METHOD_LABEL[m]}
+                {CHANNEL_LABEL[m]}
               </option>
             ))}
           </Select>

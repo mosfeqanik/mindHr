@@ -9,7 +9,7 @@ import com.mindhr.entity.Receipt;
 import com.mindhr.entity.Subscription;
 import com.mindhr.entity.SubscriptionPlan;
 import com.mindhr.entity.enums.BillingCycle;
-import com.mindhr.entity.enums.CollectionChannel;
+import com.mindhr.entity.enums.PaymentChannel;
 import com.mindhr.entity.enums.InvoiceStatus;
 import com.mindhr.entity.enums.PaymentStatus;
 import com.mindhr.entity.enums.SubscriptionStatus;
@@ -71,7 +71,7 @@ public class SubscriptionPaymentService {
         }
 
         String transactionId = blankToNull(request.transactionId());
-        if (request.method() == CollectionChannel.BKASH && transactionId == null) {
+        if (request.method() == PaymentChannel.BKASH && transactionId == null) {
             throw new IllegalArgumentException("bKash transaction id (TrxID) is required");
         }
         if (transactionId != null && paymentRepository.existsByGatewayTransactionIdIgnoreCase(transactionId)) {
@@ -108,7 +108,7 @@ public class SubscriptionPaymentService {
         payment.setAmount(amount);
         payment.setCurrency(currency);
         payment.setStatus(PaymentStatus.CONFIRMED);
-        payment.setGateway(request.method().name());
+        payment.setChannel(request.method());
         payment.setGatewayTransactionId(transactionId);
         payment.setPaidAt(now);
         payment = paymentRepository.save(payment);

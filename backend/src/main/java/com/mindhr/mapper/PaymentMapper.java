@@ -17,6 +17,7 @@ public final class PaymentMapper {
                 payment.getAmount(),
                 payment.getCurrency(),
                 payment.getStatus(),
+                payment.getChannel(),
                 payment.getGateway(),
                 payment.getGatewayTransactionId(),
                 payment.getPaidAt(),

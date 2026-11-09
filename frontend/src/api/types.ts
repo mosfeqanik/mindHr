@@ -456,6 +456,10 @@ export interface InvoiceRequest {
 export const PAYMENT_STATUSES = ['PENDING', 'CONFIRMED', 'FAILED', 'REFUNDED'] as const
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number]
 
+export const PAYMENT_CHANNELS = ['CASH', 'BKASH', 'CARD'] as const
+export type PaymentChannel = (typeof PAYMENT_CHANNELS)[number]
+export const CHANNEL_LABEL: Record<PaymentChannel, string> = { CASH: 'Cash', BKASH: 'bKash', CARD: 'Card' }
+
 export interface Payment {
   id: number
   organizationId: number
@@ -464,6 +468,7 @@ export interface Payment {
   amount: number
   currency: string | null
   status: PaymentStatus
+  channel: PaymentChannel | null
   gateway: string | null
   gatewayTransactionId: string | null
   paidAt: string | null
@@ -475,6 +480,7 @@ export interface PaymentRequest {
   paymentMethodId?: number | null
   amount: number
   currency?: string | null
+  channel?: PaymentChannel | null
   gateway?: string | null
   gatewayTransactionId?: string | null
 }
@@ -486,9 +492,6 @@ export interface Receipt {
   issuedAt: string
 }
 
-export const COLLECTION_METHODS = ['CASH', 'BKASH', 'CARD'] as const
-export type CollectionMethod = (typeof COLLECTION_METHODS)[number]
-
 export interface SubscriptionPaymentQuote {
   subscriptionId: number
   planName: string
@@ -498,7 +501,7 @@ export interface SubscriptionPaymentQuote {
   periodEnd: string
 }
 export interface SubscriptionPaymentRequest {
-  method: CollectionMethod
+  method: PaymentChannel
   transactionId?: string | null
   notes?: string | null
 }

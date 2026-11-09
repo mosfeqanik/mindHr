@@ -1,5 +1,6 @@
 package com.mindhr.dto;
 
+import com.mindhr.entity.enums.PaymentChannel;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -21,6 +22,9 @@ public record PaymentRequest(
 
         @Size(min = 3, max = 3, message = "Currency must be a 3-letter code")
         String currency,
+
+        /** Optional: cash, bKash or card. */
+        PaymentChannel channel,
 
         @Size(max = 50, message = "Gateway must be at most 50 characters")
         String gateway,

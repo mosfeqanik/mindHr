@@ -55,9 +55,9 @@ docker compose down
   It is not under `/api/auth/**` because that path is `permitAll`.
 - **Collect subscription payment (platform staff only):** `GET /api/subscriptions/{id}/payment-quote` and
   `POST /api/subscriptions/{id}/collect-payment` `{method: CASH|BKASH|CARD, transactionId, notes}` take one month of the
-  current plan (YEARLY plan = price / 12). One transaction: a PAID invoice (`SUB-INV-…`), a CONFIRMED payment (method stored
-  in `gateway`), a receipt, renewal date +1 month (from the current renewal date if it is in the future), status ACTIVE, and
-  a history row. bKash needs a TrxID; a CANCELLED subscription is refused. Web: "Collect payment" on the Subscriptions page.
+  current plan (YEARLY plan = price / 12). One transaction: a PAID invoice (`SUB-INV-…`), a CONFIRMED payment (method in the
+  `payments.channel` column, `PaymentChannel` enum; also settable on `POST /api/payments`), a receipt, renewal date +1 month (from the current renewal date if it is in the future), status ACTIVE, and
+  a history row. Always one month per payment. bKash needs a TrxID; a CANCELLED subscription is refused. Web: "Collect payment" on the Subscriptions page.
 - `PUT /api/employees/{id}` and `PUT /api/users/{id}` replace the whole record: send every field back (GET it first).
   `roleIds` on a user replaces all roles.
 - The web app cannot yet set an employee's branch, department or manager, or change a user's roles; use Swagger

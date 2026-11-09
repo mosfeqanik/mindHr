@@ -72,6 +72,7 @@ public class PaymentService {
         payment.setAmount(request.amount());
         payment.setCurrency(request.currency() != null ? request.currency().toUpperCase() : "USD");
         payment.setStatus(PaymentStatus.PENDING);
+        payment.setChannel(request.channel());
         payment.setGateway(request.gateway());
         payment.setGatewayTransactionId(request.gatewayTransactionId());
 

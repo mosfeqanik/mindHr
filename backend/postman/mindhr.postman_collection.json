@@ -3985,7 +3985,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"organizationId\": 1,\n  \"invoiceId\": 1,\n  \"paymentMethodId\": 1,\n  \"amount\": 100.0,\n  \"currency\": \"USD\",\n  \"gateway\": \"string\",\n  \"gatewayTransactionId\": \"string\"\n}",
+              "raw": "{\n  \"organizationId\": 1,\n  \"invoiceId\": 1,\n  \"paymentMethodId\": 1,\n  \"amount\": 100.0,\n  \"currency\": \"USD\",\n  \"cash\": \"string\",\n  \"channel\": \"string\",\n  \"gateway\": \"string\",\n  \"gatewayTransactionId\": \"string\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

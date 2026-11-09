@@ -1,5 +1,6 @@
 package com.mindhr.dto;
 
+import com.mindhr.entity.enums.PaymentChannel;
 import com.mindhr.entity.enums.PaymentStatus;
 
 import java.math.BigDecimal;
@@ -13,6 +14,7 @@ public record PaymentResponse(
         BigDecimal amount,
         String currency,
         PaymentStatus status,
+        PaymentChannel channel,
         String gateway,
         String gatewayTransactionId,
         LocalDateTime paidAt,

@@ -1,6 +1,7 @@
 package com.mindhr.entity;
 
 import com.mindhr.entity.base.Tenant;
+import com.mindhr.entity.enums.PaymentChannel;
 import com.mindhr.entity.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -34,6 +35,11 @@ public class Payment extends Tenant {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private PaymentStatus status;
+
+    /** How the money was received (cash, bKash, card). Null for older rows and gateway-only payments. */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private PaymentChannel channel;
 
     /** Gateway name, e.g. stripe, sslcommerz. */
     @Column(length = 50)
