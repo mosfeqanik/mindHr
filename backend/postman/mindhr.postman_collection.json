@@ -249,7 +249,8 @@
                   "disabled": true
                 }
               ]
-            }
+            },
+            "description": "Activity log (newest first). Every successful create / update / delete / approve ... is recorded automatically. `limit`: default 100, max 500. Platform staff: all organizations, or one with `organizationId`. Org users: their own organization, and only with ORGANIZATION data scope (owner, HR admin); others get 403."
           }
         },
         {
@@ -280,7 +281,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Add a manual activity entry. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. Normal activity is recorded automatically; use this only for events outside the API."
           }
         }
       ]
@@ -855,7 +857,7 @@
             "auth": {
               "type": "noauth"
             },
-            "description": "Public. Copy `token` from the response and paste it into the collection variable `token`."
+            "description": "Public. Copy `accessToken` from the response and paste it into the collection variable `token`."
           }
         }
       ]
@@ -2108,7 +2110,8 @@
                   "disabled": true
                 }
               ]
-            }
+            },
+            "description": "List invoices. Org users: their own organization only. Platform staff: pass `organizationId`."
           }
         },
         {
@@ -2132,7 +2135,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Get an invoice. Org users: their own organization only."
           }
         },
         {
@@ -2163,7 +2167,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Create an invoice. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. Starts as PENDING."
           }
         },
         {
@@ -2201,7 +2206,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Update an invoice. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403."
           }
         },
         {
@@ -2240,7 +2246,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Change invoice status. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. PAID sets `paidAt`."
           }
         }
       ]
@@ -3941,7 +3948,8 @@
                   "disabled": true
                 }
               ]
-            }
+            },
+            "description": "List payments. Org users: their own organization only. Platform staff: pass `organizationId`."
           }
         },
         {
@@ -3965,7 +3973,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Get a payment. Org users: their own organization only."
           }
         },
         {
@@ -3996,7 +4005,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Record a payment. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. Starts as PENDING."
           }
         },
         {
@@ -4035,7 +4045,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Change payment status. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. CONFIRMED also marks the invoice PAID."
           }
         },
         {
@@ -4060,7 +4071,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Issue a receipt. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. Only for a CONFIRMED payment, once."
           }
         }
       ]
@@ -4090,7 +4102,7 @@
                 }
               ]
             },
-            "description": "Org-scoped payment methods. An {@code ORG_USER} always operates on their own organization; {@code organizationId} is only honored for platform staff (Finance/Support), who must supply it explicitly. See {@link com.mindhr.security.TenantContext}."
+            "description": "List payment methods. Org users: their own organization only. Platform staff: pass `organizationId`."
           }
         },
         {
@@ -4114,7 +4126,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Get a payment method. Org users: their own organization only. `gatewayToken` is never returned."
           }
         },
         {
@@ -4145,7 +4158,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Add a payment method. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403."
           }
         },
         {
@@ -4183,7 +4197,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Update a payment method. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403."
           }
         },
         {
@@ -4207,7 +4222,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Delete a payment method. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403."
           }
         }
       ]
@@ -4644,7 +4660,8 @@
                   "disabled": true
                 }
               ]
-            }
+            },
+            "description": "List receipts. Org users: their own organization only. Platform staff: pass `organizationId`. Receipts are created with POST /api/payments/{id}/receipt."
           }
         },
         {
@@ -4668,7 +4685,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Get a receipt. Org users: their own organization only."
           }
         }
       ]
@@ -4820,7 +4838,8 @@
                   "disabled": true
                 }
               ]
-            }
+            },
+            "description": "List roles. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. With `organizationId`: that organization's roles plus platform roles; without: platform roles only."
           }
         },
         {
@@ -4844,7 +4863,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Get a role. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403."
           }
         },
         {
@@ -4875,7 +4895,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Create a role. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. With `organizationId`: a custom role of that organization (data scope cannot be PLATFORM). Without: a platform role (Super Admin only)."
           }
         },
         {
@@ -4913,7 +4934,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Replace a role. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. `permissionIds` replaces all permissions. System roles (SUPER_ADMIN and every organization's built-in roles) cannot be changed."
           }
         },
         {
@@ -4937,7 +4959,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Delete a role. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. System roles cannot be deleted."
           }
         }
       ]
@@ -5551,7 +5574,8 @@
                   "disabled": true
                 }
               ]
-            }
+            },
+            "description": "List subscriptions. Org users: their own organization only. Platform staff: pass `organizationId`."
           }
         },
         {
@@ -5577,7 +5601,7 @@
                 }
               ]
             },
-            "description": "The plan the organization can use now, with its features (org users: their own organization)."
+            "description": "Current plan and features. The plan the organization can use now (TRIAL, ACTIVE or GRACE_PERIOD subscription), with its features. Org users: their own organization only. Platform staff: pass `organizationId`."
           }
         },
         {
@@ -5601,7 +5625,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Get a subscription. Org users: their own organization only."
           }
         },
         {
@@ -5626,7 +5651,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Subscription history. Every status and plan change. Org users: their own organization only."
           }
         },
         {
@@ -5657,7 +5683,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Create a subscription. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403."
           }
         },
         {
@@ -5695,7 +5722,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Update dates and auto-renew. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403."
           }
         },
         {
@@ -5734,7 +5762,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Change subscription status. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. Recorded in the history."
           }
         },
         {
@@ -5773,7 +5802,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Change subscription plan. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. Recorded in the history."
           }
         }
       ]
@@ -6400,7 +6430,8 @@
                   "disabled": true
                 }
               ]
-            }
+            },
+            "description": "List users. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. Pass `organizationId` to list one organization's users."
           }
         },
         {
@@ -6424,7 +6455,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Get a user. Platform staff: any user. Organization users: only their own record (403 for anyone else)."
           }
         },
         {
@@ -6455,7 +6487,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Create a user. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. SUPER_ADMIN / SAAS_STAFF accounts (no `organizationId`) need the Super Admin. An account with an `organizationId` must be `ORG_USER` (400 otherwise). `roleIds` must be roles of that organization (platform roles for platform accounts)."
           }
         },
         {
@@ -6493,7 +6526,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Replace a user. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. Send every field back (GET it first). `password` null keeps the current one; `roleIds` replaces all roles and must belong to the user's organization. An account with an `organizationId` must be `ORG_USER`. Platform accounts need the Super Admin."
           }
         },
         {
@@ -6517,7 +6551,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Delete a user. Platform staff only (SUPER_ADMIN, SAAS_STAFF); organization users get 403. You cannot delete your own account; platform accounts need the Super Admin."
           }
         }
       ]

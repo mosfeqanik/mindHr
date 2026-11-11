@@ -75,6 +75,19 @@ npm run build
 The app listens on `$PORT` (set by Render). The free plan sleeps after 15 minutes idle; the first request then takes
 30-60 s. The seed admin is created only when the database has **no users yet**.
 
+## Deploy the web app on Netlify
+
+`netlify.toml` (repo root) holds every setting: base `frontend/`, `npm run build`, publish `dist`, Node 22.
+
+1. Netlify dashboard > **Add new site > Import an existing project** > GitHub > this repo. Production branch `main`.
+   Leave the build fields as Netlify fills them from `netlify.toml`, and add no environment variables.
+2. If your Render URL is not `https://mindhr-api.onrender.com`, change the `/api/*` redirect in `netlify.toml`.
+
+The browser calls `/api/...` on the Netlify domain and Netlify forwards it to Render (like `frontend/nginx.conf` does in
+Docker), so the backend needs no CORS config. Every other path serves `index.html` so React Router pages load on refresh.
+Builds are skipped for commits that do not touch `frontend/`. While the Render free plan is asleep, the first login can
+fail or be slow; wait a minute and retry.
+
 ## API docs
 
 - **Swagger UI:** http://localhost:8080/swagger-ui.html (OpenAPI JSON at `/v3/api-docs`). Call `POST /api/auth/login`,

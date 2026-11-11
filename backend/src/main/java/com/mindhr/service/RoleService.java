@@ -5,6 +5,7 @@ import com.mindhr.dto.RoleResponse;
 import com.mindhr.entity.Organization;
 import com.mindhr.entity.Permission;
 import com.mindhr.entity.Role;
+import com.mindhr.entity.enums.DataScope;
 import com.mindhr.entity.enums.RoleScope;
 import com.mindhr.exception.DuplicateResourceException;
 import com.mindhr.exception.ResourceNotFoundException;
@@ -22,11 +23,12 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * A platform (built-in) role has {@code organizationId == null} and may only be managed by the
- * Super Admin; an org custom role is scoped like a {@code Tenant} via
- * {@link TenantContext}. Every {@code ORG_USER} can also read platform roles, since those are
- * the built-ins available to assign within their own organization. {@code system} roles (the
- * seeded Super Admin role) can never be edited or deleted through the API.
+ * Roles are managed by SaaS platform staff only: organization users cannot read, create, change
+ * or delete roles (see {@link UserService} for why). A platform role has
+ * {@code organizationId == null} and may only be managed by the Super Admin; an org custom role
+ * is scoped like a {@code Tenant} via {@link TenantContext} and can never have PLATFORM data
+ * scope. {@code system} roles (the seeded Super Admin role and every organization's built-in
+ * roles) can never be edited or deleted through the API.
  */
 @Service
 @RequiredArgsConstructor
@@ -38,24 +40,21 @@ public class RoleService {
     private final PermissionRepository permissionRepository;
 
     public List<RoleResponse> list(Long requestedOrganizationId) {
-        List<Role> roles;
-        if (TenantContext.isPlatformStaff()) {
-            roles = requestedOrganizationId != null
-                    ? roleRepository.findByOrganizationIdOrOrganizationIdIsNull(requestedOrganizationId)
-                    : roleRepository.findByOrganizationIdIsNull();
-        } else {
-            Long ownOrganizationId = TenantContext.resolveOrganizationId(null);
-            roles = roleRepository.findByOrganizationIdOrOrganizationIdIsNull(ownOrganizationId);
-        }
+        TenantContext.requirePlatformStaff();
+        List<Role> roles = requestedOrganizationId != null
+                ? roleRepository.findByOrganizationIdOrOrganizationIdIsNull(requestedOrganizationId)
+                : roleRepository.findByOrganizationIdIsNull();
         return roles.stream().map(RoleMapper::toResponse).toList();
     }
 
     public RoleResponse getById(Long id) {
+        TenantContext.requirePlatformStaff();
         return RoleMapper.toResponse(findAccessibleEntity(id));
     }
 
     @Transactional
     public RoleResponse create(RoleRequest request) {
+        TenantContext.requirePlatformStaff();
         Role role = new Role();
 
         if (request.organizationId() == null) {
@@ -66,6 +65,7 @@ public class RoleService {
             role.setOrganization(null);
             role.setScope(RoleScope.PLATFORM);
         } else {
+            rejectPlatformDataScope(request);
             Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
             if (roleRepository.existsByOrganizationIdAndNameIgnoreCase(organizationId, request.name())) {
                 throw new DuplicateResourceException("A role named '" + request.name() + "' already exists for this organization");
@@ -87,6 +87,7 @@ public class RoleService {
 
     @Transactional
     public RoleResponse update(Long id, RoleRequest request) {
+        TenantContext.requirePlatformStaff();
         Role role = findAccessibleEntity(id);
         rejectIfSystem(role);
 
@@ -99,6 +100,7 @@ public class RoleService {
             role.setOrganization(null);
             role.setScope(RoleScope.PLATFORM);
         } else {
+            rejectPlatformDataScope(request);
             Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
             if (roleRepository.existsByOrganizationIdAndNameIgnoreCaseAndIdNot(organizationId, request.name(), id)) {
                 throw new DuplicateResourceException("A role named '" + request.name() + "' already exists for this organization");
@@ -123,9 +125,17 @@ public class RoleService {
 
     @Transactional
     public void delete(Long id) {
+        TenantContext.requirePlatformStaff();
         Role role = findAccessibleEntity(id);
         rejectIfSystem(role);
         roleRepository.delete(role);
+    }
+
+    /** An organization role sees at most its own organization; PLATFORM scope is for platform roles only. */
+    private static void rejectPlatformDataScope(RoleRequest request) {
+        if (request.dataScope() == DataScope.PLATFORM) {
+            throw new IllegalArgumentException("An organization role cannot have PLATFORM data scope");
+        }
     }
 
     private void rejectIfSystem(Role role) {

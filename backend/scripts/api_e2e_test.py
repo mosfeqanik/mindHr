@@ -449,9 +449,9 @@ def main():
     s, b = call("GET", "/api/leave-requests?employeeId=" + str(ids["emp2"]), emp1)
     check("Employee cannot list a colleague's leave", s in (403, 404) or (s == 200 and not any(r["employeeId"] == ids["emp2"] for r in b)), f"{s}")
     s, b = call("GET", "/api/users", emp1)
-    expect("KNOWN ISSUE: employee lists users -> should be 403", s, b, 403)
+    expect("Employee lists users -> 403", s, b, 403)
     s, b = call("GET", "/api/roles", emp1)
-    expect("KNOWN ISSUE: employee lists roles -> should be 403", s, b, 403)
+    expect("Employee lists roles -> 403", s, b, 403)
 
     # ------------------------------------------------ manager approvals
     begin("Team Lead approvals")
@@ -532,6 +532,91 @@ def main():
     s, b = call("GET", "/api/payslips", emp1)
     expect("Employee lists own payslips", s, b, 200)
     check("Employee sees only own payslips", b and all(p["employeeId"] == ids["emp1"] for p in b), f"{len(b or [])}")
+
+    # ------------------------------------------------ users and roles: platform staff only, no escalation
+    begin("Users and roles: platform staff only, no privilege escalation")
+    emp_list = call("GET", "/api/employees", owner)[1] or []
+    emp1_uid = claims(emp1)["userId"]
+    emp2_uid = find(emp_list, email=PEOPLE["emp2"][1])["userId"]
+    s, roles = call("GET", f"/api/roles?organizationId={org_id}", admin)
+    expect("Super Admin lists the organization's roles", s, roles, 200)
+    org_role = {r["name"]: r["id"] for r in roles or [] if r["organizationId"] == org_id}
+    super_role_id = next((r["id"] for r in roles or [] if r["organizationId"] is None and r["name"] == "SUPER_ADMIN"), None)
+
+    def user_body(u, **changes):
+        body = {"organizationId": u["organizationId"], "email": u["email"], "fullName": u["fullName"],
+                "phone": u["phone"], "userType": u["userType"], "active": u["active"],
+                "roleIds": [r["id"] for r in u["roles"]]}
+        body.update(changes)
+        return body
+
+    # Organization users (even the owner) cannot list or change users and roles.
+    for path in ("/api/users", "/api/roles"):
+        s, b = call("GET", path, owner)
+        expect(f"Owner lists {path} -> 403", s, b, 403)
+    s, me = call("GET", f"/api/users/{emp1_uid}", emp1)
+    expect("Employee reads own user record", s, me, 200)
+    if s == 200:
+        s, b = call("PUT", f"/api/users/{emp1_uid}", emp1, user_body(me, userType="SUPER_ADMIN"))
+        expect("Employee makes self SUPER_ADMIN -> 403", s, b, 403)
+        s, b = call("PUT", f"/api/users/{emp1_uid}", emp1, user_body(me, roleIds=[org_role.get("ORG_OWNER")]))
+        expect("Employee gives self ORG_OWNER -> 403", s, b, 403)
+    s, b = call("GET", f"/api/users/{emp2_uid}", emp1)
+    expect("Employee reads a colleague's user record -> 403", s, b, 403)
+    s, b = call("POST", "/api/roles", emp1, {"organizationId": org_id, "name": "QA Sneaky", "dataScope": "ORGANIZATION",
+                                            "permissionIds": []})
+    expect("Employee creates a role -> 403", s, b, 403)
+
+    s, u2 = call("GET", f"/api/users/{emp2_uid}", admin)
+    if expect("Super Admin reads emp2's user", s, u2, 200):
+        s, b = call("PUT", f"/api/users/{emp2_uid}", lead, user_body(u2, roleIds=[org_role.get("ORG_OWNER")]))
+        expect("Team lead gives emp2 ORG_OWNER -> 403", s, b, 403)
+        s, b = call("PUT", f"/api/users/{emp2_uid}", owner, user_body(u2, roleIds=[org_role.get("ORG_OWNER")]))
+        expect("Owner gives emp2 ORG_OWNER -> 403", s, b, 403)
+        s, b = call("POST", "/api/roles", owner, {"organizationId": org_id, "name": "QA Owner Role",
+                                                 "dataScope": "SELF", "permissionIds": []})
+        expect("Owner creates a role -> 403", s, b, 403)
+        s, b = call("DELETE", f"/api/users/{emp2_uid}", owner)
+        expect("Owner deletes a user -> 403", s, b, 403)
+
+        # Even platform staff cannot cross the org/platform line.
+        s, b = call("PUT", f"/api/users/{emp2_uid}", admin, user_body(u2, userType="SUPER_ADMIN"))
+        expect("Org account with type SUPER_ADMIN -> 400", s, b, 400)
+        if super_role_id:
+            s, b = call("PUT", f"/api/users/{emp2_uid}", admin, user_body(u2, roleIds=[super_role_id]))
+            expect("Platform SUPER_ADMIN role on an org user -> 400", s, b, 400)
+        other_org = next((o for o in call("GET", "/api/organizations", admin)[1] or [] if o["id"] != org_id), None)
+        if other_org:
+            other_roles = call("GET", f"/api/roles?organizationId={other_org['id']}", admin)[1] or []
+            foreign = next((r for r in other_roles if r["organizationId"] == other_org["id"]), None)
+            if foreign:
+                s, b = call("PUT", f"/api/users/{emp2_uid}", admin, user_body(u2, roleIds=[foreign["id"]]))
+                expect("Another organization's role on a user -> 400", s, b, 400)
+        s, b = call("POST", "/api/roles", admin, {"organizationId": org_id, "name": "QA Platform Scope",
+                                                 "dataScope": "PLATFORM", "permissionIds": []})
+        expect("Organization role with PLATFORM data scope -> 400", s, b, 400)
+
+        # A custom role that is merely *named* SUPER_ADMIN must not grant Super Admin powers.
+        lookalike_id = org_role.get("SUPER_ADMIN")
+        if not lookalike_id:
+            s, b = call("POST", "/api/roles", admin, {"organizationId": org_id, "name": "SUPER_ADMIN",
+                                                     "description": "QA look-alike", "dataScope": "SELF",
+                                                     "permissionIds": []})
+            expect("Custom org role named SUPER_ADMIN can be created", s, b, (200, 201))
+            lookalike_id = (b or {}).get("id")
+        if lookalike_id:
+            s, b = call("PUT", f"/api/users/{emp2_uid}", admin,
+                        user_body(u2, roleIds=[r["id"] for r in u2["roles"]] + [lookalike_id]))
+            expect("Super Admin assigns that role to emp2", s, b, 200)
+            emp2 = login(PEOPLE["emp2"][1], PASSWORD)
+            c2 = claims(emp2) if emp2 else {}
+            check("Look-alike role gives no ROLE_SUPER_ADMIN", "ROLE_SUPER_ADMIN" not in c2.get("authorities", []),
+                  str(c2.get("authorities")))
+            check("emp2 stays ORG_USER", c2.get("userType") == "ORG_USER", str(c2.get("userType")))
+            s, b = call("GET", "/api/system-settings", emp2)
+            expect("emp2 with the look-alike role reads system settings -> 403", s, b, 403)
+            s, b = call("PUT", f"/api/users/{emp2_uid}", admin, user_body(u2))
+            expect("Super Admin restores emp2's roles", s, b, 200)
 
     # ------------------------------------------------ billing is platform-only
     begin("Billing: org users read, only platform staff write")

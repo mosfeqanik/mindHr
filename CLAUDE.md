@@ -10,6 +10,8 @@ I am learning English. In every reply, including replies to slash commands such 
 - To bring work from another branch (e.g. `master`) into `main`, merge it into a feature branch and open a PR.
 - Do not merge PRs yourself unless the user asks for it in that message.
 - `render.yaml` deploys `main` automatically, so every merge to `main` goes live on Render.
+- The web app is deployed on Netlify from `main` (`netlify.toml`); `/api/*` is proxied to the Render API, so no CORS.
+  If the Render service URL changes, update the redirect in `netlify.toml`.
 - Render can build the API two ways: the Blueprint (`render.yaml`, `rootDir: backend`, uses `backend/Dockerfile`), or a
   manually created Web Service with Root Directory empty, which uses the root `Dockerfile` (copies from `backend/`).
   Keep the two Dockerfiles in sync.
@@ -44,8 +46,14 @@ docker compose down
 - First start seeds one `SUPER_ADMIN` (`DataSeeder`) when no user exists. Change its password after first login.
 - Dockerfile is multi-stage: Maven 3.9 + Temurin 21 build, then `eclipse-temurin:21-jre` runtime.
 - Swagger UI: `http://localhost:8080/swagger-ui.html` (springdoc; spec at `/v3/api-docs`). Auth is manual: log in, click Authorize, paste the JWT.
+  The front page ("Who can do what") is in `config/OpenApiConfig`; update it when access rules change.
 - Postman: `backend/postman/mindhr.postman_collection.json` is generated from the controllers and DTOs.
   After adding or changing endpoints, run `python postman/generate_postman.py` from `backend/`. Do not add token-saving scripts; the user pastes the token into the `token` variable.
+- **Endpoint docs have one source:** `@Operation(summary = "...", description = "...")` on the controller method. Swagger
+  shows it and the Postman generator copies it into the request description. Say who may call it whenever the check is
+  not a plain `hasAuthority` (platform-only, own-record-only, data scope, ...). Without `@Operation` the generator falls
+  back to the method's Javadoc plus `Requires authority: X` from `@PreAuthorize`. Documented so far: users, roles,
+  billing (subscriptions, invoices, payments, payment methods, receipts), activity log, auth.
 
 ## Notes
 
@@ -53,9 +61,10 @@ docker compose down
   so `source .env` fails in zsh; read single keys with `grep '^KEY=' .env | cut -d= -f2-`.
 - `backend/CLAUDE.md` still says only the entity layer exists; controllers, services, DTOs and repositories are now built.
 - **E2E API test:** `python3 scripts/api_e2e_test.py` (from `backend/`, backend running) seeds a "QA Test Org" with
-  QA logins (`qa.owner|qa.lead|qa.emp1|qa.emp2@mindhr.test`, password `QaTest@123`) and runs ~150 checks: setup,
-  check-in/geofence, leave, requests, approvals, payroll, data scope, tenant isolation. Re-runnable; exits 1 on any FAIL.
-  The two `KNOWN ISSUE` checks fail until `/api/users` and `/api/roles` get permission checks.
+  QA logins (`qa.owner|qa.lead|qa.emp1|qa.emp2@mindhr.test`, password `QaTest@123`) and runs ~210 checks: setup,
+  check-in/geofence, leave, requests, approvals, payroll, data scope, users/roles escalation, billing, activity log,
+  tenant isolation. Re-runnable; exits 1 on any FAIL. The "another organization's role" check runs only when a second
+  organization exists.
 - Unreadable request bodies (bad JSON, unknown enum value) return 400 via `GlobalExceptionHandler`; `/error` is
   `permitAll` so Spring's error forward no longer turns errors into 401.
 - `mvnw` is not executable in git; run it as `sh ./mvnw ...` (same for `mobile_app/gradlew`).
@@ -81,9 +90,14 @@ docker compose down
   `TenantContext.requirePlatformStaff()` (SUPER_ADMIN or SAAS_STAFF) and returns 403 otherwise. Covered by the E2E
   "Billing" section. `SubscriptionService.createInitial` has no check because only `OrganizationService.create` (already
   platform-only) calls it.
-- **Open security gap:** `UserController` and `RoleController` have no `@PreAuthorize`, so any signed-in org user (even
-  `EMPLOYEE`) can list the org's users and roles, and likely `PUT /api/users/{id}` with `roleIds` (privilege escalation).
-  Needs a permission check before production.
+- **Users and roles are platform-staff only.** `UserService` / `RoleService` call `TenantContext.requirePlatformStaff()`
+  on every list/create/update/delete; an org user (even `ORG_OWNER`) gets 403 and may only `GET /api/users/{ownId}`.
+  Rules that bind platform staff too: an account with an organization is always `ORG_USER` (400 otherwise); roles must
+  belong to the user's organization (org user) or be platform roles (platform user); an org role cannot have `PLATFORM`
+  data scope. Platform accounts (SUPER_ADMIN / SAAS_STAFF) are still Super Admin-only.
+- **Authorities (`CustomUserDetails`):** `ROLE_SUPER_ADMIN` / `ROLE_SAAS_STAFF` come from the user **type**, never from
+  role names (a custom org role named `SUPER_ADMIN` grants nothing). Org users only get permissions from roles of their
+  own organization, and their data scope is at most `ORGANIZATION`. `hasRole('X')` therefore means "user type X".
 
 ## Frontend (`frontend/`)
 
