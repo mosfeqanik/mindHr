@@ -2,6 +2,8 @@
 
 Platform staff (SUPER_ADMIN / SAAS_STAFF) flow. Screenshots use sample data (Dhaka Garments Ltd, Business plan 2,500 BDT/month).
 
+**PDF version:** [subscription-payment-guide.pdf](subscription-payment-guide.pdf) (cover + one page per step).
+
 | # | Screen | What to do / what happens |
 |---|--------|---------------------------|
 | 01 | Subscription Plans | Plans with price, billing cycle, limits and features. A YEARLY plan is charged price / 12 per month. |
