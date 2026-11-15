@@ -76,6 +76,10 @@ export const paymentsApi = {
   issueReceipt: (id: number) => api.post<Receipt>(`/api/payments/${id}/receipt`).then((r) => r.data),
 }
 
+export const receiptsApi = {
+  list: () => api.get<Receipt[]>('/api/receipts').then((r) => r.data),
+}
+
 export const contractsApi = {
   ...crud<Contract, ContractRequest>('/api/contracts'),
   changeStatus: (id: number, status: ContractStatus, note?: string | null) =>

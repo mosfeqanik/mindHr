@@ -16,6 +16,7 @@ import {
 } from '../../api/types'
 import { Button, DataTable, ErrorBox, Field, Input, Modal, ModalFooter, PageHeader, Select, type Column } from '../../components/ui'
 import { formatMoney, label, orNull } from '../../lib/format'
+import { InvoiceViewModal } from './InvoiceView'
 import { Badge, Card, HistoryModal, StatusModal } from './shared'
 
 const STATUS_BADGE: Record<SubscriptionStatus, string> = {
@@ -185,6 +186,7 @@ function CollectPaymentModal({ item, onClose, onDone }: { item: Subscription; on
   const [transactionId, setTransactionId] = useState('')
   const [notes, setNotes] = useState('')
   const [result, setResult] = useState<SubscriptionPaymentResult | null>(null)
+  const [showInvoice, setShowInvoice] = useState(false)
   const save = useMutation({
     mutationFn: () =>
       subscriptionsApi.collectPayment(item.id, { method, transactionId: orNull(transactionId), notes: orNull(notes) }),
@@ -192,6 +194,10 @@ function CollectPaymentModal({ item, onClose, onDone }: { item: Subscription; on
   })
   const needsTrx = method === 'BKASH' && transactionId.trim() === ''
   const q = quote.data
+
+  if (result && showInvoice) {
+    return <InvoiceViewModal invoice={result.invoice} onClose={onDone} />
+  }
 
   if (result) {
     return (
@@ -208,6 +214,9 @@ function CollectPaymentModal({ item, onClose, onDone }: { item: Subscription; on
           </ul>
         </div>
         <div className="modal-footer">
+          <Button variant="secondary" onClick={() => setShowInvoice(true)}>
+            View invoice
+          </Button>
           <Button onClick={onDone}>Done</Button>
         </div>
       </Modal>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Eye } from 'react-feather'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -21,6 +22,7 @@ import {
   DataTable,
   ErrorBox,
   Field,
+  IconButton,
   Input,
   Modal,
   ModalFooter,
@@ -30,6 +32,7 @@ import {
   type Column,
 } from '../../components/ui'
 import { formatMoney, numOrNull, orNull } from '../../lib/format'
+import { InvoiceViewModal } from './InvoiceView'
 import { Card, StatusSelect } from './shared'
 
 const amount = z.string().regex(/^\d+(\.\d{1,2})?$/, 'Enter an amount, e.g. 49.99')
@@ -154,6 +157,7 @@ function InvoicesTab() {
   const { data, isLoading, error } = useQuery({ queryKey: ['invoices'], queryFn: () => invoicesApi.list() })
   const refresh = () => qc.invalidateQueries({ queryKey: ['invoices'] })
   const [editing, setEditing] = useState<Invoice | 'new' | null>(null)
+  const [viewing, setViewing] = useState<Invoice | null>(null)
   const status = useMutation({
     mutationFn: ({ id, value }: { id: number; value: InvoiceStatus }) => invoicesApi.changeStatus(id, value),
     onSuccess: refresh,
@@ -178,11 +182,14 @@ function InvoicesTab() {
     },
     {
       header: '',
-      className: 'text-end',
+      className: 'text-end text-nowrap',
       cell: (i) => (
-        <Button variant="secondary" size="sm" onClick={() => setEditing(i)}>
-          Edit
-        </Button>
+        <>
+          <IconButton icon={<Eye size={15} />} label="View invoice" className="me-1" onClick={() => setViewing(i)} />
+          <Button variant="secondary" size="sm" onClick={() => setEditing(i)}>
+            Edit
+          </Button>
+        </>
       ),
     },
   ]
@@ -195,6 +202,7 @@ function InvoicesTab() {
       {error && <ErrorBox message={errorMessage(error)} />}
       {status.error && <ErrorBox message={errorMessage(status.error)} />}
       <DataTable columns={columns} rows={data ?? []} loading={isLoading} empty="No invoices yet." />
+      {viewing && <InvoiceViewModal invoice={viewing} onClose={() => setViewing(null)} />}
       {editing && (
         <InvoiceModal
           item={editing === 'new' ? null : editing}
@@ -328,6 +336,7 @@ function PaymentsTab() {
   }
   const [adding, setAdding] = useState(false)
   const [receipt, setReceipt] = useState<string | null>(null)
+  const [viewing, setViewing] = useState<Invoice | null>(null)
   const status = useMutation({
     mutationFn: ({ id, value }: { id: number; value: PaymentStatus }) => paymentsApi.changeStatus(id, value),
     onSuccess: refresh,
@@ -340,9 +349,23 @@ function PaymentsTab() {
     },
   })
   const invoiceNumber = (id: number) => invoices.data?.find((i) => i.id === id)?.invoiceNumber ?? `#${id}`
+  const invoiceOf = (id: number) => invoices.data?.find((i) => i.id === id)
 
   const columns: Column<Payment>[] = [
-    { header: 'Invoice', cell: (p) => <span className="text-dark font-weight-medium">{invoiceNumber(p.invoiceId)}</span> },
+    {
+      header: 'Invoice',
+      cell: (p) => {
+        const inv = invoiceOf(p.invoiceId)
+        return (
+          <span className="d-inline-flex align-items-center text-nowrap">
+            {inv && (
+              <IconButton icon={<Eye size={15} />} label="View invoice" className="me-2" onClick={() => setViewing(inv)} />
+            )}
+            <span className="text-dark font-weight-medium">{invoiceNumber(p.invoiceId)}</span>
+          </span>
+        )
+      },
+    },
     { header: 'Amount', cell: (p) => money(p.amount, p.currency) },
     { header: 'Method', cell: (p) => (p.channel ? CHANNEL_LABEL[p.channel] : '-') },
     { header: 'Gateway', cell: (p) => p.gateway ?? '-' },
@@ -385,6 +408,7 @@ function PaymentsTab() {
       {issue.error && <ErrorBox message={errorMessage(issue.error)} />}
       {receipt && <div className="alert alert-success py-2">{receipt}</div>}
       <DataTable columns={columns} rows={data ?? []} loading={isLoading} empty="No payments yet." />
+      {viewing && <InvoiceViewModal invoice={viewing} onClose={() => setViewing(null)} />}
       {adding && (
         <PaymentModal
           invoices={invoices.data ?? []}
