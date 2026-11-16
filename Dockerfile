@@ -1,8 +1,3 @@
-# Root-level Dockerfile so Render can build the API with the default settings
-# (Root Directory empty, Dockerfile path ./Dockerfile). The code stays in backend/;
-# this file only copies it from there. backend/Dockerfile is still used by
-# render.yaml (rootDir: backend) and by `docker compose` in backend/.
-
 # =========================
 # Build stage
 # =========================
@@ -10,10 +5,16 @@ FROM maven:3.9.9-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-COPY backend/pom.xml .
+# Copy Maven configuration
+COPY pom.xml .
+
+# Download dependencies
 RUN mvn dependency:go-offline
 
-COPY backend/src ./src
+# Copy source code
+COPY src ./src
+
+# Build the Spring Boot application
 RUN mvn clean package -DskipTests
 
 
@@ -24,10 +25,13 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
+# Copy the generated JAR
 COPY --from=build /app/target/*.jar app.jar
 
+# Spring Boot port
 EXPOSE 8080
 
+# Start application
 # Keep the heap inside the container memory limit (Render free plan has 512 MB).
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75"
 

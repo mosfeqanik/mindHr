@@ -1,161 +1,111 @@
-# English practice
+# CLAUDE.md
 
-I am learning English. In every reply, including replies to slash commands such as `/commit-push`, if my message has grammar, spelling or wording mistakes, start with a short "English tip": show the corrected sentence and briefly explain the main mistakes in simple English. Keep it short and kind, then do the task. Skip the tip if my message is already correct.
+Multi-tenant B2B SaaS management platform: one SaaS company (Super Admin + SaaS Staff)
+manages many client organizations, each an isolated tenant. Full product spec:
+[multi_tenant_saas_management_platform.md](multi_tenant_saas_management_platform.md).
+ER diagram: [docs/er-diagram.md](docs/er-diagram.md).
 
-# Git workflow
+## Stack
 
-- **Never push directly to `main` or `master`** (no `git push origin <branch>:main`, no fast-forward, no force push).
-  Work on a feature branch (`feat/...`, `fix/...`, `docs/...`, or the branch the session names), push that branch,
-  and open a pull request into `main`. The user reviews and merges.
-- To bring work from another branch (e.g. `master`) into `main`, merge it into a feature branch and open a PR.
-- Do not merge PRs yourself unless the user asks for it in that message.
-- `render.yaml` deploys `main` automatically, so every merge to `main` goes live on Render.
-- The web app is deployed on Netlify from `main` (`netlify.toml`); `/api/*` is proxied to the Render API, so no CORS.
-  If the Render service URL changes, update the redirect in `netlify.toml`.
-- Render can build the API two ways: the Blueprint (`render.yaml`, `rootDir: backend`, uses `backend/Dockerfile`), or a
-  manually created Web Service with Root Directory empty, which uses the root `Dockerfile` (copies from `backend/`).
-  Keep the two Dockerfiles in sync.
+- Java 21, Spring Boot 4.1.x (Jakarta EE), Spring Data JPA / Hibernate 7
+- PostgreSQL (Neon), `spring.jpa.hibernate.ddl-auto=update` — schema is generated from entities
+- Lombok (`@Getter @Setter @NoArgsConstructor`; never `@Data` on entities)
+- Maven wrapper: `./mvnw compile`, `./mvnw test`, `./mvnw spring-boot:run`
 
-# Project
+## Package layout (`com.mindhr`)
 
-mindHR: HRM / workforce management multi-tenant SaaS. Spring Boot API in `backend/`; React web app in `frontend/`;
-Android employee app in `mobile_app/`. How to enter data so everything works: [docs/USER_MANUAL.md](docs/USER_MANUAL.md).
-Deeper backend notes (entities, access model, conventions): [backend/CLAUDE.md](backend/CLAUDE.md). ER diagram: [backend/docs/er-diagram.md](backend/docs/er-diagram.md).
-
-## Run commands
-
-All commands run from `backend/`.
-
-```bash
-# Docker Compose (builds the image, starts the API on :8080)
-docker compose up --build -d      # compose auto-reads backend/.env
-docker compose logs -f app
-docker compose down
-
-# Local (no Docker)
-./mvnw spring-boot:run
-./mvnw compile
-./mvnw test
-./mvnw clean package -DskipTests  # jar in target/
+```
+controller/   REST controllers            (empty — not yet built)
+dto/          request/response records    (empty)
+mapper/       entity <-> dto mapping      (empty)
+service/      business logic              (empty)
+repository/   Spring Data repositories    (empty)
+entity/       JPA entities (done)
+  base/       BaseEntity, Tenant
+  enums/      all enum types (@Enumerated(STRING), VARCHAR(30))
 ```
 
-- `docker-compose.yml` has one service, `app` (container `mindhr-api`). There is **no local Postgres container**:
-  the database is Neon, given by `DB_URL`.
-- Needed in `backend/.env` (gitignored; `application.properties` also imports it for local runs): `DB_URL`, `JWT_SECRET`.
-  Optional: `JWT_EXPIRATION_MS` (default 3600000), `SEED_ENABLED` (default true), `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`.
-- First start seeds one `SUPER_ADMIN` (`DataSeeder`) when no user exists. Change its password after first login.
-- Dockerfile is multi-stage: Maven 3.9 + Temurin 21 build, then `eclipse-temurin:21-jre` runtime.
-- Swagger UI: `http://localhost:8080/swagger-ui.html` (springdoc; spec at `/v3/api-docs`). Auth is manual: log in, click Authorize, paste the JWT.
-  The front page ("Who can do what") is in `config/OpenApiConfig`; update it when access rules change.
-- Postman: `backend/postman/mindhr.postman_collection.json` is generated from the controllers and DTOs.
-  After adding or changing endpoints, run `python postman/generate_postman.py` from `backend/`. Do not add token-saving scripts; the user pastes the token into the `token` variable.
-- **Endpoint docs have one source:** `@Operation(summary = "...", description = "...")` on the controller method. Swagger
-  shows it and the Postman generator copies it into the request description. Say who may call it whenever the check is
-  not a plain `hasAuthority` (platform-only, own-record-only, data scope, ...). Without `@Operation` the generator falls
-  back to the method's Javadoc plus `Requires authority: X` from `@PreAuthorize`. Documented so far: users, roles,
-  billing (subscriptions, invoices, payments, payment methods, receipts), activity log, auth.
+Only the entity layer exists so far. Do not scaffold the other layers unless asked.
 
-## Notes
+## Entity conventions
 
-- Never commit or print `backend/.env` (it holds the real Neon credentials and JWT secret). Its `DB_URL` contains `&`,
-  so `source .env` fails in zsh; read single keys with `grep '^KEY=' .env | cut -d= -f2-`.
-- `backend/CLAUDE.md` still says only the entity layer exists; controllers, services, DTOs and repositories are now built.
-- **E2E API test:** `python3 scripts/api_e2e_test.py` (from `backend/`, backend running) seeds a "QA Test Org" with
-  QA logins (`qa.owner|qa.lead|qa.emp1|qa.emp2@mindhr.test`, password `QaTest@123`) and runs ~210 checks: setup,
-  check-in/geofence, leave, requests, approvals, payroll, data scope, users/roles escalation, billing, activity log,
-  tenant isolation. Re-runnable; exits 1 on any FAIL. The "another organization's role" check runs only when a second
-  organization exists.
-- Unreadable request bodies (bad JSON, unknown enum value) return 400 via `GlobalExceptionHandler`; `/error` is
-  `permitAll` so Spring's error forward no longer turns errors into 401.
-- `mvnw` is not executable in git; run it as `sh ./mvnw ...` (same for `mobile_app/gradlew`).
-- **Adding a value to an existing enum:** Hibernate created a `CHECK (col IN (...))` constraint when the table was made and
-  `ddl-auto=update` never refreshes it, so inserts with the new value fail. Add `table.column` to
-  `EnumCheckConstraintRunner.COLUMNS` (drops the stale constraint at startup). Done for `work_requests.request_type`
-  (`ATTENDANCE_CORRECTION`).
-- `POST /api/account/change-password` (`AccountController` -> `AuthService.changePassword`) is for the signed-in user.
-  It is not under `/api/auth/**` because that path is `permitAll`.
-- `PUT /api/employees/{id}` and `PUT /api/users/{id}` replace the whole record: send every field back (GET it first).
-  `roleIds` on a user replaces all roles.
-- The web app cannot yet set an employee's branch, department or manager, or change a user's roles; use Swagger
-  (see the manual).
-- **Activity log is automatic.** `audit/ActivityRecorder` (a `HandlerInterceptor`, registered in `config/WebMvcConfig`)
-  writes one `ActivityLog` row after every 2xx POST/PUT/PATCH/DELETE under `/api/**`: entity type, id and action come
-  from the URL (`/api/leave-requests/7/approve` -> LEAVE_REQUEST 7 APPROVE), and `audit/ResponseIdCapture` supplies the
-  id and organizationId of created records from the response body. Request bodies are never stored. Skipped:
-  `/api/auth/**`, `/api/activity-logs`, notification `/read`. New endpoints are logged without any extra code.
-  `GET /api/activity-logs?limit=` (default 100, max 500): platform staff see all orgs; org users need ORGANIZATION data
-  scope (owner, HR admin), others get 403. Web: `/activity` page and a "Recent activity" card on the dashboard.
-- **Billing is platform-only for writes.** Subscriptions, invoices, payments (and receipt issuing) and payment methods:
-  org users (any role, even `ORG_OWNER`) can only read their own org's records; create/update/status/plan/delete calls
-  `TenantContext.requirePlatformStaff()` (SUPER_ADMIN or SAAS_STAFF) and returns 403 otherwise. Covered by the E2E
-  "Billing" section. `SubscriptionService.createInitial` has no check because only `OrganizationService.create` (already
-  platform-only) calls it.
-- **Users and roles are platform-staff only.** `UserService` / `RoleService` call `TenantContext.requirePlatformStaff()`
-  on every list/create/update/delete; an org user (even `ORG_OWNER`) gets 403 and may only `GET /api/users/{ownId}`.
-  Rules that bind platform staff too: an account with an organization is always `ORG_USER` (400 otherwise); roles must
-  belong to the user's organization (org user) or be platform roles (platform user); an org role cannot have `PLATFORM`
-  data scope. Platform accounts (SUPER_ADMIN / SAAS_STAFF) are still Super Admin-only.
-- **Authorities (`CustomUserDetails`):** `ROLE_SUPER_ADMIN` / `ROLE_SAAS_STAFF` come from the user **type**, never from
-  role names (a custom org role named `SUPER_ADMIN` grants nothing). Org users only get permissions from roles of their
-  own organization, and their data scope is at most `ORGANIZATION`. `hasRole('X')` therefore means "user type X".
+- Every entity extends `BaseEntity` (`id` IDENTITY, `createdAt`, `updatedAt` via Hibernate timestamps).
+- Every organization-owned entity extends `Tenant`, which adds a **non-null**
+  `organization_id` `@ManyToOne`. This is the multi-tenant isolation rule:
+  `User -> Organization -> Data`. Never expose tenant data across organizations.
+- All `@ManyToOne` / `@OneToOne` are `fetch = LAZY`. `@OneToMany` is the inverse side (`mappedBy`).
+- Cascade `ALL + orphanRemoval` only where the child has no life outside the parent
+  (history rows, documents, comments, sales activities). Otherwise no cascade.
+- Table names are snake_case plural (`users`, `menu_items`); columns snake_case via `@Column(name=...)`.
+- Reserved-word-ish fields are renamed at the column level: `key`/`value` -> `setting_key`/`setting_value`,
+  `Contract.value` -> `contract_value`, `Notification.read` -> `is_read`, `PaymentMethod.defaultMethod` -> `is_default`.
+- Money: `BigDecimal` `NUMERIC(12,2)` (`NUMERIC(14,2)` for `contracts.contract_value`), `currency` `CHAR(3)` default `USD`.
+- Enums stored as strings, `length = 30`. Lengths: email 255, phone 30, names 150, URLs 500, free text `TEXT`.
+- Join tables `user_roles` and `role_permissions` are `@ManyToMany` — there are no entity classes for them.
 
-## Frontend (`frontend/`)
+## Entities
 
-Vite + React + TypeScript, FreeDash admin template (Bootstrap 5 CSS in `public/template`, `react-feather` icons; no Tailwind), React Router, TanStack Query, React Hook Form + Zod, axios. Node 22+.
+**Identity & access (shared):** `User` (nullable `organization_id` = SaaS-side user), `Role`
+(nullable `organization_id` = built-in; set = org custom role), `Permission` (`module` + `PermissionAction`).
 
-```bash
-# from frontend/
-npm install
-npm run dev        # http://localhost:5173, proxies /api -> http://localhost:8080 (the backend has no CORS config)
-npm run build      # tsc -b && vite build
+**Platform scope (SaaS company):** `Organization`, `SubscriptionPlan`, `Subscription`, `SubscriptionHistory`,
+`Invoice`, `Payment`, `Receipt`, `Refund`, `PaymentMethod`, `SupportTicket`, `TicketComment`, `Lead`,
+`SalesActivity`, `ActivityLog` (nullable org), `SystemSetting`.
 
-# Docker: start the backend compose first (it creates the backend_mindhr-net network), then:
-docker compose up --build -d   # http://localhost:3000, nginx serves the SPA and proxies /api to http://app:8080
-```
+**Organization scope (`Tenant`):** `Employee`, `MenuCategory`, `MenuItem`, `MenuImage`, `Contract`,
+`ContractDocument`, `ContractHistory`, `OrganizationSetting`, `Notification`.
+(`Subscription`, `Invoice`, `Payment`, `Receipt`, `PaymentMethod`, `SupportTicket` are also `Tenant`:
+they represent the org's relationship with the SaaS company and are visible to both sides.)
 
-- Token is kept in localStorage; `src/auth/AuthContext.tsx` decodes the JWT claims (`authorities`, `dataScope`, ...). `<Can permission="EMPLOYEE_CREATE">` and the sidebar only hide UI; the backend enforces access.
-- `SUPER_ADMIN` gets every HR permission at login (`CustomUserDetails.superAdminHrAuthorities`); `SAAS_STAFF` holds none (spec section 29) and gets 403 on HR endpoints.
-  Platform users pick an organization in the top bar (`OrgPicker` in `AppShell`); `src/api/orgScope.ts` adds that `organizationId` to every org-scoped request (GET params, POST/PUT bodies), and org-scoped pages show "Select an organization" until one is picked. Self-service actions (apply leave, check-in) still need an employee profile.
-- If the backend fails with `ClassFormatError: Invalid method Code length 0`, the VS Code Java extension wrote a bad class into `target/classes`; start with `./mvnw clean spring-boot:run`.
-- Built so far (web): login, app shell, and screens for Organizations, Users, Subscription Plans, System Settings, Subscriptions, Billing (invoices, payments, receipts), Contracts and Support Tickets (platform side), and for Employees, Branches, Departments, Attendance (list + manual records; mobile check-in/out is not in the web app), Leave (requests with apply/approve/reject/cancel, balances, types), Shifts (roster + shifts), Payroll (runs: generate/finalize/pay/delete, payslips with adjustments), Activity (audit log) and Assets (assets, assignments with return, employee documents). Pattern: `crud()` in `src/api/crud.ts`, `useResource` for lists, `DataTable`/`Tabs`/`Modal` in `src/components/ui.tsx`. API types in `src/api/types.ts` are hand-written from the DTOs.
+Dashboards, Reports and Usage are aggregate queries, not entities.
 
-## Mobile app (`mobile_app/`)
+## Key flows (from the spec)
 
-Android only. Kotlin + Jetpack Compose (Material 3), Navigation Compose, Retrofit + kotlinx.serialization, OkHttp,
-Play Services Location. No DI framework, no ViewModels: screens load data with `rememberLoad { ... }`.
+- **Onboarding:** Lead -> Demo -> Organization -> Owner User -> Subscription -> Payment -> activate.
+- **Billing:** Subscription -> Invoice -> Payment (gateway) -> Receipt; Finance staff sees all orgs.
+- **Support:** Org user creates `SupportTicket`; SaaS support staff is `assignedTo`; `TicketComment.internal`
+  is staff-only.
+- **Permissions:** Role -> Permission(module, action). Org Owner permissions are scoped to their own organization.
 
-```bash
-# from mobile_app/ (JDK 21; Android SDK path in local.properties, gitignored)
-sh ./gradlew assembleDebug                     # app/build/outputs/apk/debug/app-debug.apk
-sh ./gradlew installDebug                      # emulator: backend at http://10.0.2.2:8080/
-sh ./gradlew installDebug -PapiBaseUrl=http://<pc-ip>:8080/   # real phone on the same Wi-Fi
-```
+## Roles (user types)
 
-- If the build fails with `jlink executable .../redhat.java.../jre/.../jlink does not exist`: VS Code generated
-  `gradle/gradle-daemon-jvm.properties` (toolchainVersion=25) and Gradle picked VS Code's JRE. Build from a terminal
-  with `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`.
-- **Android 17 local network:** apps targeting API 37 cannot reach local addresses (the emulator's `10.0.2.2`,
-  `192.168.x.x`) without the runtime permission `ACCESS_LOCAL_NETWORK` ("Nearby devices" dialog); without it every
-  call fails with "Cannot reach the server" (SocketTimeoutException) even though `adb shell` can connect. It is
-  declared only in `app/src/debug/AndroidManifest.xml` and requested on start in debug builds (`MainActivity`).
-  If it was denied: `adb shell pm grant com.mindhr.mobile android.permission.ACCESS_LOCAL_NETWORK`.
-- Toolchain: Gradle 9.7.1 needs **AGP 9.x** (AGP 8.x uses a Gradle internal API removed in 9.6). AGP 9 has built-in
-  Kotlin: do **not** apply `org.jetbrains.kotlin.android`, and use `kotlin { compilerOptions { ... } }` instead of
-  `kotlinOptions`. Only the compose and serialization Kotlin plugins are applied. compileSdk/targetSdk 37, minSdk 26.
-- Layout (`com.mindhr.mobile`):
-  - `data/Api.kt`: `MindHrApi` (Retrofit) and `Session`, which holds the JWT, prefs (onboarded, 24h clock, remembered
-    email), the decoded claims (`employeeId`, `branchId`, `dataScope`, `authorities`), `isApprover`, and `errorMessage()`.
-  - `data/Models.kt`: mirrors backend DTOs. Dates stay ISO strings; BigDecimal is `Double`.
-  - `ui/AppRoot.kt`: onboarding -> login -> `MainShell` (bottom tabs Home / Attendance / Leave / More + `Routes`).
-  - `ui/Components.kt`: `rememberLoad` / `LoadContent` (reloads on ON_RESUME, so lists refresh after a pushed form
-    closes), `MessageState` (empty/error states; no screen is ever blank), `SectionCard`, `StatusChip`, formatters.
-  - `ui/theme/Theme.kt`: `MhColors`, same palette as `frontend/src/styles/colors.css`.
-  - One file per screen: Home, CheckInSheet, Attendance, Leave, ApplyLeave, Payslips, Requests (+ NewRequest),
-    Approvals, Notifications, Profile (+ ChangePassword), More, Onboarding, Login; `Pickers.kt` (date, dropdown).
-- "My" screens pass `employeeId = Session.employeeId` because list endpoints return everything in the caller's data
-  scope (a manager would otherwise see the team). Approvals call the lists without it and drop the caller's own rows.
-- Accounts without an employee profile (e.g. SUPER_ADMIN) get a message instead of attendance/leave screens.
-- Check-in shows distance to the branch geofence client-side (no map, no Maps API key); the backend decides.
-- Payslips show "Payroll run #N": `PayslipResponse` has no period and employees cannot read payroll runs.
-- Not built yet (later phases): break time, field visits, notices, holidays/leave calendar, directory, device binding,
-  push (FCM).
+`SUPER_ADMIN`, `SAAS_STAFF` (Subscription / Support / Finance / Sales via `Role`), `ORG_USER`
+(Organization Owner, Manager, Employee, custom roles via `Role` with `organization_id`).
+
+## Gotchas
+
+- `application.properties` currently has the Neon connection string inline; move credentials to env vars
+  before committing anything real.
+- `ddl-auto=update` never drops or renames columns — renaming a field leaves the old column behind.
+- The spec's `## Employees` block lists Attendance / Leave as UI features; they are intentionally **not**
+  entities. Do not add them without being asked.
+
+## HRM layer (workforce management)
+
+Spec: `SME-Workforce-Management-SaaS.md`. All HR entities extend `Tenant`; boilerplate layers (DTO, mapper, repository,
+service, controller) follow the same shape as the SaaS entities.
+
+- **Org structure:** `Branch` (geofence lat/lng/radius, plan-limited), `Department`.
+- **People:** `Employee` (employeeCode, national ID, emergency contact, branch, department, manager, employmentType; every
+  employee created via the API gets a login `User` with the `EMPLOYEE` role for the mobile app), `EmployeePaymentAccount`,
+  `SalaryStructure` (history), `EmployeeEvent` (timeline, written automatically on join/salary/position/branch changes).
+- **Time:** `Shift`, `ShiftAssignment` (roster), `Attendance` (mobile check-in/out via `AttendanceActionController`; geofence + lateness).
+- **Leave:** `LeaveType`, `LeaveBalance`, `LeaveRequest` (apply / approve / reject / cancel via `LeaveActionController`).
+- **Requests:** `WorkRequest` (advance, loan, shift change, expense, ... approved by a manager).
+- **Payroll:** `PayrollRun`, `Payslip` (rules in `PayrollService` Javadoc; Friday off, 3 lates = 1 day, no holiday calendar yet).
+- **Assets and documents:** `Asset`, `AssetAssignment`, `EmployeeDocument`.
+
+### Access model
+- **What:** `Role` -> `Permission(module, action)`, enforced with `@PreAuthorize("hasAuthority('<MODULE>_<ACTION>')")`.
+  HR modules: BRANCH, DEPARTMENT, EMPLOYEE, ATTENDANCE, SHIFT, LEAVE, PAYROLL, PAYSLIP, ASSET, DOCUMENT, REQUEST.
+  SaaS staff hold none of these, so they cannot read client HR data (spec section 29).
+- **Who manages access:** users and roles (`/api/users`, `/api/roles`) are platform-staff only; org users get 403.
+  `ROLE_*` authorities come from the user type (`ROLE_SUPER_ADMIN`, `ROLE_SAAS_STAFF`), not from role names, and an
+  org user's permissions come only from roles of their own organization (`CustomUserDetails`).
+- **Which rows:** `Role.dataScope` (`PLATFORM`, `ORGANIZATION`, `BRANCH`, `TEAM`, `SELF`); widest scope across a user's roles wins.
+  Enforced by `DataScopeService` (visibleEmployeeIds / assertCanAccess / resolveEmployeeForWrite). Scope, employeeId and branchId
+  are JWT claims, so changes apply at next login.
+- **Built-in roles per organization** (`OrgRoleProvisioner`, created on organization creation and backfilled at startup by
+  `OrgRoleBackfillRunner`): `ORG_OWNER`, `HR_ADMIN` (ORGANIZATION), `BRANCH_MANAGER` (BRANCH), `TEAM_LEAD` (TEAM), `EMPLOYEE` (SELF).
+- **Plan limits:** `PlanLimitService` enforces `maxEmployees`, `maxBranches` and `PlanFeature` (PAYROLL and ASSETS are feature-gated).
+  An organization with no TRIAL/ACTIVE/GRACE_PERIOD subscription cannot add employees or branches.

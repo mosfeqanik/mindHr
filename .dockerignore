@@ -1,13 +1,9 @@
-# Only backend/pom.xml and backend/src are needed for the root Dockerfile.
-**/.git
-**/.env
-**/.env.*
-**/node_modules
-**/target
-**/dist
-frontend/
-mobile_app/
-docs/
-.claude/
+target/
+.git/
+.gitignore
 .idea/
 .vscode/
+*.iml
+README.md
+.env
+.DS_Store

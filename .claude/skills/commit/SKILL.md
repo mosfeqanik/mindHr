@@ -49,9 +49,8 @@ Pick exactly one, based on the *primary* intent of the change:
 
 ### Scope (optional but preferred)
 
-A short, lowercase noun in parentheses naming the area touched. For this workspace (Spring Boot `backend/`, React/Vite `frontend/`, `mobile_app/`) prefer
-scopes such as `auth`, `tenant`, `user`, `billing`, `employee`, `attendance`, `leave`, `payroll`, `asset`,
-`api`, `security`, `config`, `db`, `docker`, `deps`, `backend`, `frontend`, `mobile`, `workspace`.
+A short, lowercase noun in parentheses naming the area touched. For this Spring Boot project prefer
+scopes such as `auth`, `tenant`, `user`, `billing`, `api`, `security`, `config`, `db`, `docker`, `deps`.
 Reuse scopes seen in `git log`. Omit the scope if the change is truly cross-cutting.
 
 ### Description (required)
@@ -82,7 +81,7 @@ Every repository now applies a Hibernate filter keyed on the current
 tenant id from TenantContext, so cross-tenant reads are impossible even
 if a query forgets the where clause.
 
-Co-Authored-By: <name and email from the session's attribution line>
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ```
 
 ```
