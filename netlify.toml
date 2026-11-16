@@ -1,11 +1,10 @@
-# Netlify config for the React web app (frontend/). The API stays on Render.
+# Netlify config for the React web app (this branch: the app is at the repo root). The API stays on Render.
 # Netlify dashboard > Add new site > Import from Git > pick this repo; every setting below is read from here.
 
 [build]
-  base = "frontend"           # commands run in frontend/
   command = "npm run build"   # tsc -b && vite build
-  publish = "dist"            # relative to base
-  # Skip the build when nothing under frontend/ changed (backend-only commits).
+  publish = "dist"
+  # Skip the build when nothing changed.
   ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ."
 
 [build.environment]

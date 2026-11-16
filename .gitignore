@@ -1,15 +1,6 @@
-# env (keep *.example)
+node_modules/
+dist/
 .env
 .env.*
-!.env.*.example
 !.env.example
-
-node_modules/
-target/
-dist/
-.idea/
-.vscode/
-*.iml
-
-# Local Netlify folder
-.netlify
+*.tsbuildinfo
