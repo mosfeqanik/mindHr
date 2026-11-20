@@ -26,7 +26,7 @@ public class EmployeeDocumentService {
     private final DataScopeService scope;
 
     public List<EmployeeDocumentResponse> list(Long requestedOrganizationId, Long employeeId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         Set<Long> visible = scope.visibleEmployeeIds(organizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .filter(e -> visible == null || visible.contains(e.getEmployee().getId()))
@@ -41,7 +41,7 @@ public class EmployeeDocumentService {
 
     @Transactional
     public EmployeeDocumentResponse create(EmployeeDocumentRequest request) {
-        Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
+        Long organizationId = TenantContext.resolveHrOrganizationId(request.organizationId());
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
         EmployeeDocument entity = new EmployeeDocument();
@@ -75,7 +75,7 @@ public class EmployeeDocumentService {
     private EmployeeDocument findAccessibleEntity(Long id) {
         EmployeeDocument entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("EmployeeDocument not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("EmployeeDocument not found: " + id);
         }
         scope.assertCanAccess(entity.getEmployee());

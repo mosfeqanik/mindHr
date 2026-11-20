@@ -26,7 +26,7 @@ public class AttendanceService {
     private final DataScopeService scope;
 
     public List<AttendanceResponse> list(Long requestedOrganizationId, Long employeeId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         Set<Long> visible = scope.visibleEmployeeIds(organizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .filter(e -> visible == null || visible.contains(e.getEmployee().getId()))
@@ -41,7 +41,7 @@ public class AttendanceService {
 
     @Transactional
     public AttendanceResponse create(AttendanceRequest request) {
-        Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
+        Long organizationId = TenantContext.resolveHrOrganizationId(request.organizationId());
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
         Attendance entity = new Attendance();
@@ -82,7 +82,7 @@ public class AttendanceService {
     private Attendance findAccessibleEntity(Long id) {
         Attendance entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Attendance not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("Attendance not found: " + id);
         }
         scope.assertCanAccess(entity.getEmployee());

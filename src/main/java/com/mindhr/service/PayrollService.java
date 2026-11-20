@@ -74,7 +74,7 @@ public class PayrollService {
     private final PlanLimitService planLimitService;
 
     public PayrollRunResponse generate(PayrollRunCreateRequest request) {
-        Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
+        Long organizationId = TenantContext.resolveHrOrganizationId(request.organizationId());
         planLimitService.assertFeature(organizationId, PlanFeature.PAYROLL);
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
@@ -130,7 +130,7 @@ public class PayrollService {
     public PayslipResponse adjust(Long payslipId, PayslipAdjustRequest request) {
         Payslip payslip = payslipRepository.findById(payslipId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payslip not found: " + payslipId));
-        if (!TenantContext.canAccess(payslip.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(payslip.getOrganization().getId())) {
             throw new ResourceNotFoundException("Payslip not found: " + payslipId);
         }
         if (payslip.getStatus() != PayrollStatus.DRAFT) {
@@ -274,7 +274,7 @@ public class PayrollService {
     private PayrollRun findRun(Long id) {
         PayrollRun run = payrollRunRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payroll run not found: " + id));
-        if (!TenantContext.canAccess(run.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(run.getOrganization().getId())) {
             throw new ResourceNotFoundException("Payroll run not found: " + id);
         }
         return run;

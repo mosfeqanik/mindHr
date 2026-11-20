@@ -19,26 +19,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 /**
- * Users are managed by SaaS platform staff only. Organization users cannot list, create, change
- * or delete users (not even in their own organization); they may only read their own record.
- * Without this, any employee could send {@code PUT /api/users/{ownId}} with a new
- * {@code userType} or {@code roleIds} and take over the platform.
- *
- * <p>Rules that also bind platform staff:
- * <ul>
- *   <li>A "platform account" (SUPER_ADMIN / SAAS_STAFF, no organization) may only be created or
- *       changed by a Super Admin.</li>
- *   <li>An account that belongs to an organization is always {@code ORG_USER}.</li>
- *   <li>Roles must match the account: an org account gets roles of its own organization only,
- *       a platform account gets platform roles only.</li>
- * </ul>
+ * Users are managed by the Super Admin or an Admin. Super Admin accounts cannot be created, and only a
+ * Super Admin may edit or delete one, preventing privilege escalation. An "org
+ * account" is scoped like any other {@code Tenant} via {@link TenantContext}, even though
+ * {@code User} itself carries a nullable organization rather than extending it.
  */
 @Service
 @RequiredArgsConstructor
@@ -50,12 +39,17 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
+    /** Platform staff only: support needs the list to assign tickets; organization users have no access. */
     public List<UserResponse> list(Long requestedOrganizationId) {
         TenantContext.requirePlatformStaff();
-        List<User> users = requestedOrganizationId != null
-                ? userRepository.findByOrganizationId(requestedOrganizationId)
-                : userRepository.findAll();
-        return users.stream().map(UserMapper::toResponse).toList();
+        if (TenantContext.isPlatformStaff()) {
+            List<User> users = requestedOrganizationId != null
+                    ? userRepository.findByOrganizationId(requestedOrganizationId)
+                    : userRepository.findAll();
+            return users.stream().map(UserMapper::toResponse).toList();
+        }
+        Long ownOrganizationId = TenantContext.resolveOrganizationId(null);
+        return userRepository.findByOrganizationId(ownOrganizationId).stream().map(UserMapper::toResponse).toList();
     }
 
     /** Platform staff read any user; an organization user only their own record. */
@@ -66,10 +60,17 @@ public class UserService {
         return UserMapper.toResponse(findAccessibleEntity(id));
     }
 
+    /**
+     * The Super Admin or an Admin creates Admin, mindHR Staff and Org User accounts and sets their passwords.
+     * Super Admin accounts cannot be added: only the seeded one(s) exist.
+     */
     @Transactional
     public UserResponse create(UserRequest request) {
-        TenantContext.requirePlatformStaff();
+        TenantContext.requireUserManager();
         rejectOrgAccountWithPlatformType(request);
+        if (request.userType() == UserType.SUPER_ADMIN) {
+            throw new IllegalArgumentException("Super Admin accounts cannot be added");
+        }
         if (userRepository.existsByEmailIgnoreCase(request.email())) {
             throw new DuplicateResourceException("A user with email '" + request.email() + "' already exists");
         }
@@ -79,8 +80,8 @@ public class UserService {
 
         boolean platformAccount = isPlatformAccount(request.organizationId(), request.userType());
         User user = new User();
+
         if (platformAccount) {
-            TenantContext.requireSuperAdmin();
             user.setOrganization(null);
         } else {
             Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
@@ -95,21 +96,27 @@ public class UserService {
         user.setPhone(request.phone());
         user.setUserType(request.userType());
         user.setActive(request.active() == null || request.active());
-        user.setRoles(resolveRoles(request.roleIds(), user.getOrganization()));
+        user.setRoles(resolveRoles(request.roleIds(), user.getOrganization(), request.userType()));
 
         return UserMapper.toResponse(userRepository.save(user));
     }
 
     @Transactional
     public UserResponse update(Long id, UserRequest request) {
-        TenantContext.requirePlatformStaff();
+        TenantContext.requireUserManager();
         rejectOrgAccountWithPlatformType(request);
         User user = findAccessibleEntity(id);
-        guardIfPlatformAccount(user);
+        guardSuperAdminAccount(user);
+        // A Super Admin stays a Super Admin, and nobody else can be turned into one.
+        boolean wasSuperAdmin = user.getUserType() == UserType.SUPER_ADMIN;
+        if (wasSuperAdmin != (request.userType() == UserType.SUPER_ADMIN)) {
+            throw new IllegalArgumentException(wasSuperAdmin
+                    ? "A Super Admin's user type cannot be changed"
+                    : "A user cannot be changed into a Super Admin");
+        }
 
         boolean becomesPlatformAccount = isPlatformAccount(request.organizationId(), request.userType());
         if (becomesPlatformAccount) {
-            TenantContext.requireSuperAdmin();
             user.setOrganization(null);
         } else {
             Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
@@ -133,10 +140,10 @@ public class UserService {
             user.setActive(request.active());
         }
         if (request.roleIds() != null) {
-            user.setRoles(resolveRoles(request.roleIds(), user.getOrganization()));
-        } else if (!rolesMatch(user.getRoles(), user.getOrganization())) {
-            // The account moved to another organization (or to/from platform): its old roles no longer apply.
-            user.setRoles(new HashSet<>());
+            user.setRoles(resolveRoles(request.roleIds(), user.getOrganization(), request.userType()));
+        } else if (!user.getRoles().stream().allMatch(r -> roleFits(r, user.getOrganization()))) {
+            // Moving a user between organizations (or to/from the platform) drops roles that no longer apply.
+            user.getRoles().removeIf(r -> !roleFits(r, user.getOrganization()));
         }
 
         return UserMapper.toResponse(user);
@@ -144,16 +151,16 @@ public class UserService {
 
     @Transactional
     public void delete(Long id) {
-        TenantContext.requirePlatformStaff();
-        if (id.equals(TenantContext.currentPrincipal().userId())) {
+        TenantContext.requireUserManager();
+        User user = findAccessibleEntity(id);
+        guardSuperAdminAccount(user);
+        if (user.getId().equals(TenantContext.currentPrincipal().userId())) {
             throw new IllegalArgumentException("You cannot delete your own account");
         }
-        User user = findAccessibleEntity(id);
-        guardIfPlatformAccount(user);
         userRepository.delete(user);
     }
 
-    /** SUPER_ADMIN / SAAS_STAFF accounts never belong to an organization; an org account is always ORG_USER. */
+    /** Platform accounts (Super Admin, Admin, mindHR Staff) never belong to an organization; an org account is ORG_USER. */
     private static void rejectOrgAccountWithPlatformType(UserRequest request) {
         if (request.organizationId() != null && request.userType() != UserType.ORG_USER) {
             throw new IllegalArgumentException("A user that belongs to an organization must have user type ORG_USER");
@@ -161,41 +168,51 @@ public class UserService {
     }
 
     private boolean isPlatformAccount(Long organizationId, UserType userType) {
-        return organizationId == null && (userType == UserType.SUPER_ADMIN || userType == UserType.SAAS_STAFF);
+        return organizationId == null && (userType == UserType.SUPER_ADMIN || userType == UserType.ADMIN
+                || userType == UserType.SAAS_STAFF);
     }
 
-    /** A platform account may only be touched by a Super Admin, even one that is otherwise "accessible". */
-    private void guardIfPlatformAccount(User user) {
-        if (user.getOrganization() == null || user.getUserType() != UserType.ORG_USER) {
+    /** Only a Super Admin may edit (incl. the password) or delete a Super Admin account; an Admin may not. */
+    private void guardSuperAdminAccount(User user) {
+        if (user.getUserType() == UserType.SUPER_ADMIN) {
             TenantContext.requireSuperAdmin();
         }
     }
 
     /**
-     * Roles must belong to the account's side: an org account gets roles of its own organization,
-     * a platform account (organization null) gets platform roles. Otherwise an org user could be
-     * given the platform SUPER_ADMIN role or another organization's roles.
+     * Roles must match the user's side: an organization user only gets that organization's roles, a platform
+     * user only platform roles (no organization). This stops, e.g., the SUPER_ADMIN role landing on an org user.
      */
-    private Set<Role> resolveRoles(Set<Long> roleIds, Organization organization) {
+    private Set<Role> resolveRoles(Set<Long> roleIds, Organization organization, UserType userType) {
         if (roleIds == null || roleIds.isEmpty()) {
             return new HashSet<>();
+        }
+        if (roleIds.size() > 1) {
+            throw new IllegalArgumentException("A user can have only one role");
         }
         List<Role> roles = roleRepository.findAllById(roleIds);
         if (roles.size() != roleIds.size()) {
             throw new ResourceNotFoundException("One or more roles were not found");
         }
-        if (!rolesMatch(roles, organization)) {
-            throw new IllegalArgumentException(organization == null
-                    ? "A platform account can only have platform roles"
-                    : "Roles must belong to the user's organization");
+        for (Role role : roles) {
+            // hasRole('SUPER_ADMIN') unlocks plans, permissions and system settings: only for Super Admin users.
+            if (role.getOrganization() == null && "SUPER_ADMIN".equalsIgnoreCase(role.getName())
+                    && userType != UserType.SUPER_ADMIN) {
+                throw new IllegalArgumentException("The SUPER_ADMIN role can only be given to a Super Admin user");
+            }
+            if (!roleFits(role, organization)) {
+                throw new IllegalArgumentException(organization == null
+                        ? "Role " + role.getName() + " belongs to an organization and cannot be given to a platform user"
+                        : "Role " + role.getName() + " does not belong to " + organization.getName());
+            }
         }
         return new HashSet<>(roles);
     }
 
-    private static boolean rolesMatch(Collection<Role> roles, Organization organization) {
-        Long organizationId = organization != null ? organization.getId() : null;
-        return roles.stream().allMatch(role -> Objects.equals(
-                role.getOrganization() != null ? role.getOrganization().getId() : null, organizationId));
+    private static boolean roleFits(Role role, Organization organization) {
+        Long roleOrgId = role.getOrganization() != null ? role.getOrganization().getId() : null;
+        Long userOrgId = organization != null ? organization.getId() : null;
+        return java.util.Objects.equals(roleOrgId, userOrgId);
     }
 
     private User findAccessibleEntity(Long id) {

@@ -25,7 +25,7 @@ public class AssetService {
     private final OrganizationRepository organizationRepository;
 
     public List<AssetResponse> list(Long requestedOrganizationId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .map(AssetMapper::toResponse)
                 .toList();
@@ -37,7 +37,7 @@ public class AssetService {
 
     @Transactional
     public AssetResponse create(AssetRequest request) {
-        Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
+        Long organizationId = TenantContext.resolveHrOrganizationId(request.organizationId());
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
         Asset entity = new Asset();
@@ -71,7 +71,7 @@ public class AssetService {
     private Asset findAccessibleEntity(Long id) {
         Asset entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("Asset not found: " + id);
         }
         return entity;

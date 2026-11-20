@@ -6481,7 +6481,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"organizationId\": \"string\",\n  \"email\": \"user@example.com\",\n  \"password\": \"string\",\n  \"fullName\": \"string\",\n  \"phone\": \"+8801700000000\",\n  \"userType\": \"SUPER_ADMIN\",\n  \"active\": true,\n  \"roleIds\": [\n    1\n  ]\n}",
+              "raw": "{\n  \"organizationId\": \"string\",\n  \"email\": \"user@example.com\",\n  \"password\": \"string\",\n  \"fullName\": \"string\",\n  \"digits\": \"string\",\n  \"?01[3-9]\\\\\\\\d{8}$\\\"\": \"string\",\n  \"number\": \"string\",\n  \"roleIds\": \"string\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6520,7 +6520,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"organizationId\": \"string\",\n  \"email\": \"user@example.com\",\n  \"password\": \"string\",\n  \"fullName\": \"string\",\n  \"phone\": \"+8801700000000\",\n  \"userType\": \"SUPER_ADMIN\",\n  \"active\": true,\n  \"roleIds\": [\n    1\n  ]\n}",
+              "raw": "{\n  \"organizationId\": \"string\",\n  \"email\": \"user@example.com\",\n  \"password\": \"string\",\n  \"fullName\": \"string\",\n  \"digits\": \"string\",\n  \"?01[3-9]\\\\\\\\d{8}$\\\"\": \"string\",\n  \"number\": \"string\",\n  \"roleIds\": \"string\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

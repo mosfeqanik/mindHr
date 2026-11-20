@@ -3,6 +3,7 @@ package com.mindhr.dto;
 import com.mindhr.entity.enums.UserType;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -26,7 +27,10 @@ public record UserRequest(
         @Size(max = 150, message = "Full name must be at most 150 characters")
         String fullName,
 
-        @Size(max = 30, message = "Phone must be at most 30 characters")
+        /** Bangladeshi mobile number: 01[3-9] + 8 digits, optionally prefixed with +88 / 88. */
+        @NotBlank(message = "Mobile number is required")
+        @Pattern(regexp = "^(\\+?88)?01[3-9]\\d{8}$",
+                message = "Mobile number must be a valid Bangladeshi mobile number, e.g. 01712345678")
         String phone,
 
         @NotNull(message = "User type is required")

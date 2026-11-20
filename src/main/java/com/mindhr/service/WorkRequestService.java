@@ -27,7 +27,7 @@ public class WorkRequestService {
     private final DataScopeService scope;
 
     public List<WorkRequestResponse> list(Long requestedOrganizationId, Long employeeId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         Set<Long> visible = scope.visibleEmployeeIds(organizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .filter(e -> visible == null || visible.contains(e.getEmployee().getId()))
@@ -71,7 +71,7 @@ public class WorkRequestService {
     private WorkRequest findAccessibleEntity(Long id) {
         WorkRequest entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("WorkRequest not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("WorkRequest not found: " + id);
         }
         scope.assertCanAccess(entity.getEmployee());

@@ -34,7 +34,7 @@ public class AssetActionService {
     private final DataScopeService scope;
 
     public AssetAssignmentResponse assign(AssetAssignRequest request) {
-        Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
+        Long organizationId = TenantContext.resolveHrOrganizationId(request.organizationId());
         planLimitService.assertFeature(organizationId, PlanFeature.ASSETS);
 
         Asset asset = assetRepository.findById(request.assetId())
@@ -59,7 +59,7 @@ public class AssetActionService {
     public AssetAssignmentResponse returnAsset(Long id, AssetReturnRequest request) {
         AssetAssignment assignment = assignmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Asset assignment not found: " + id));
-        if (!TenantContext.canAccess(assignment.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(assignment.getOrganization().getId())) {
             throw new ResourceNotFoundException("Asset assignment not found: " + id);
         }
         scope.assertCanAccess(assignment.getEmployee());
