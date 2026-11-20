@@ -39,10 +39,28 @@ export function IconButton({
   )
 }
 
-export function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
+export function Field({
+  label,
+  error,
+  required,
+  children,
+}: {
+  label: string
+  error?: string
+  /** Shows a red * after the label. */
+  required?: boolean
+  children: ReactNode
+}) {
   return (
     <div className="form-group mb-3">
-      <label className="form-label text-dark">{label}</label>
+      <label className="form-label text-dark">
+        {label}
+        {required && (
+          <span className="text-danger ms-1" aria-hidden="true">
+            *
+          </span>
+        )}
+      </label>
       {children}
       {error && <div className="text-danger small mt-1">{error}</div>}
     </div>

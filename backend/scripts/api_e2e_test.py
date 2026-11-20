@@ -11,7 +11,7 @@ with positive and negative cases.
   adds new leave / requests / attendance where the old ones would conflict.
 - QA logins (all use password QaTest@123): qa.owner@mindhr.test, qa.lead@mindhr.test (TEAM_LEAD),
   qa.emp1@mindhr.test, qa.emp2@mindhr.test (EMPLOYEE).
-- Exit code 0 when every check passes. Known issues are reported as FAIL on purpose.
+- Exit code 0 when every check passes.
 """
 import argparse
 import base64
@@ -187,12 +187,12 @@ def main():
     expect("Set organization owner", s, b, 200)
     s, b = call("POST", "/api/users", admin, {
         "organizationId": org_id, "email": "qa.owner@mindhr.test", "password": PASSWORD,
-        "fullName": "Dup", "userType": "ORG_USER"})
+        "fullName": "Dup", "phone": "01900000008", "userType": "ORG_USER"})
     expect("Duplicate user email -> 409", s, b, 409)
 
     s, roles = call("GET", f"/api/roles?organizationId={org_id}", admin)
     expect("List org roles", s, roles, 200)
-    role_ids = {r["name"]: r["id"] for r in roles or []}
+    role_ids = {r["name"]: r["id"] for r in roles or [] if r.get("organizationId") == org_id}  # org roles only: platform staff roles share names
     check("Org has the 5 built-in roles",
           {"ORG_OWNER", "HR_ADMIN", "BRANCH_MANAGER", "TEAM_LEAD", "EMPLOYEE"} <= set(role_ids), str(sorted(role_ids)))
 
@@ -256,12 +256,16 @@ def main():
     # TEAM_LEAD role for the lead (Super Admin; roleIds replaces all roles).
     s, u = call("GET", f"/api/users/{lead_user_id}", admin)
     current = {r["id"] for r in (u or {}).get("roles", [])}
-    want = {role_ids["EMPLOYEE"], role_ids["TEAM_LEAD"]}
-    if not want <= current:
+    want = {role_ids["TEAM_LEAD"]}  # a user holds exactly one role
+    if current != want:
         body = {k: u.get(k) for k in ("email", "fullName", "phone", "userType", "active")}
-        body.update(organizationId=org_id, roleIds=sorted(current | want))
+        body.update(organizationId=org_id, roleIds=sorted(want))
         s, u = call("PUT", f"/api/users/{lead_user_id}", admin, body)
-        expect("Give lead the TEAM_LEAD role", s, u, 200)
+        expect("Make TEAM_LEAD the lead's only role", s, u, 200)
+    body = {k: u.get(k) for k in ("email", "fullName", "phone", "userType", "active")}
+    body.update(organizationId=org_id, roleIds=[role_ids["TEAM_LEAD"], role_ids["EMPLOYEE"]])
+    s, b = call("PUT", f"/api/users/{lead_user_id}", admin, body)
+    expect("Two roles on one user -> 400", s, b, 400)
 
     # Leave types
     s, types = call("GET", "/api/leave-types", owner)
@@ -449,9 +453,9 @@ def main():
     s, b = call("GET", "/api/leave-requests?employeeId=" + str(ids["emp2"]), emp1)
     check("Employee cannot list a colleague's leave", s in (403, 404) or (s == 200 and not any(r["employeeId"] == ids["emp2"] for r in b)), f"{s}")
     s, b = call("GET", "/api/users", emp1)
-    expect("KNOWN ISSUE: employee lists users -> should be 403", s, b, 403)
+    expect("Employee lists users -> 403", s, b, 403)
     s, b = call("GET", "/api/roles", emp1)
-    expect("KNOWN ISSUE: employee lists roles -> should be 403", s, b, 403)
+    expect("Employee lists roles -> 403", s, b, 403)
 
     # ------------------------------------------------ manager approvals
     begin("Team Lead approvals")

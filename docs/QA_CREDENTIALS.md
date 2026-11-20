@@ -22,7 +22,7 @@ All QA accounts use the same password: **`QaTest@123`**
 | Email | Role | Data scope | Use it to test |
 |---|---|---|---|
 | `qa.owner@mindhr.test` | `ORG_OWNER` | whole organization | Web app: employees, branches, leave setup, shifts, payroll, approvals |
-| `qa.lead@mindhr.test` | `EMPLOYEE` + `TEAM_LEAD` | own team (emp1, emp2) | Mobile **Approvals** screen, approving / rejecting leave and requests |
+| `qa.lead@mindhr.test` | `TEAM_LEAD` | own team (emp1, emp2) | Mobile **Approvals** screen, approving / rejecting leave and requests |
 | `qa.emp1@mindhr.test` | `EMPLOYEE` | only self | Mobile app: check-in, leave, requests, payslips, notifications |
 | `qa.emp2@mindhr.test` | `EMPLOYEE` | only self | A second employee in the same team (data-scope checks) |
 

@@ -208,6 +208,15 @@ export interface User {
   lastLoginAt: string | null
   roles: { id: number; name: string }[]
 }
+/** A role from /api/roles (organizationId null = platform role). Permissions are left out: the UI does not use them. */
+export interface Role {
+  id: number
+  organizationId: number | null
+  name: string
+  description: string | null
+  dataScope: string
+  system: boolean
+}
 export interface UserRequest {
   organizationId?: number | null
   email: string

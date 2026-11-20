@@ -143,13 +143,12 @@ The changes reach the mobile app at the employee's **next sign-in** (the branch 
 
 ### Make someone a manager (roles)
 
-The web app has no screen for roles yet, so use Swagger with the **Super Admin** account:
+Only the **Super Admin** can change users and roles:
 
-1. Signed in as Super Admin, run `GET /api/roles?organizationId=<org id>` and note the id of `TEAM_LEAD` (or
-   `BRANCH_MANAGER`).
-2. Run `GET /api/users/{userId}` for the manager's login (the employee's `userId`).
-3. Send it back with `PUT /api/users/{userId}`, with `roleIds` containing **both** the `EMPLOYEE` role id and the new
-   role id (the list replaces all roles). Leave `password` empty to keep the current one.
+1. Sign in as Super Admin → **Users** → the pencil (**Edit**) on the manager's row.
+2. Under **Role**, choose **Team Lead** (or **Branch Manager**). Each user has exactly one role; Team Lead and
+   Branch Manager already include everything an Employee can do.
+3. **Save**.
 
 The manager must sign out and sign in again in the mobile app. The **Approvals** screen then appears under **More**.
 

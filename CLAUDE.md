@@ -43,7 +43,6 @@ docker compose down
 - **E2E API test:** `python3 scripts/api_e2e_test.py` (from `backend/`, backend running) seeds a "QA Test Org" with
   QA logins (`qa.owner|qa.lead|qa.emp1|qa.emp2@mindhr.test`, password `QaTest@123`) and runs ~150 checks: setup,
   check-in/geofence, leave, requests, approvals, payroll, data scope, tenant isolation. Re-runnable; exits 1 on any FAIL.
-  The two `KNOWN ISSUE` checks fail until `/api/users` and `/api/roles` get permission checks.
 - Unreadable request bodies (bad JSON, unknown enum value) return 400 via `GlobalExceptionHandler`; `/error` is
   `permitAll` so Spring's error forward no longer turns errors into 401.
 - `mvnw` is not executable in git; run it as `sh ./mvnw ...` (same for `mobile_app/gradlew`).
@@ -55,11 +54,25 @@ docker compose down
   It is not under `/api/auth/**` because that path is `permitAll`.
 - `PUT /api/employees/{id}` and `PUT /api/users/{id}` replace the whole record: send every field back (GET it first).
   `roleIds` on a user replaces all roles.
-- The web app cannot yet set an employee's branch, department or manager, or change a user's roles; use Swagger
-  (see the manual).
-- **Open security gap:** `UserController` and `RoleController` have no `@PreAuthorize`, so any signed-in org user (even
-  `EMPLOYEE`) can list the org's users and roles, and likely `PUT /api/users/{id}` with `roleIds` (privilege escalation).
-  Needs a permission check before production.
+- The web app cannot yet set an employee's branch, department or manager; use Swagger (see the manual). Roles are
+  set on the Users page (Super Admin).
+- UI names for user types live in `frontend/src/lib/format.ts` (`USER_TYPE_LABELS`): `SAAS_STAFF` shows as
+  "mindHR Staff". `Field` in `ui.tsx` takes `required` to show a red `*`.
+- **User mobile number is required** (`UserRequest.phone`: `@NotBlank` + Bangladeshi mobile pattern
+  `^(\+?88)?01[3-9]\d{8}$`). The web forms (Users page, Organizations > Set owner) use `MOBILE_NUMBER_RE` and
+  `cleanPhone` from `frontend/src/lib/format.ts`; keep the two patterns in sync.
+- **Users and roles are Super Admin territory:** `UserService` create/update/delete (incl. passwords) call
+  `TenantContext.requireSuperAdmin()`; user and role reads need platform staff (`requirePlatformStaff`, so mindHR
+  Staff can view the Users page and assign support tickets). Org users get 403. `resolveRoles` only accepts roles from
+  the user's own side (org roles for an org user, platform roles for a platform user). Signed-in users still change
+  their own password via `POST /api/account/change-password`.
+- **mindHR Staff roles** (`PlatformRoleProvisioner`, created at startup if missing): platform roles `HR_ADMIN`,
+  `ACCOUNTS`, `TEAM_LEAD`, `EMPLOYEE` (no organization, no permissions yet: platform pages are guarded by user type).
+  The platform `SUPER_ADMIN` role grants `hasRole('SUPER_ADMIN')` (plans, permissions, system settings), so
+  `UserService.resolveRoles` only allows it on SUPER_ADMIN users. **A user holds exactly one role** (`resolveRoles`
+  rejects more; the web form is single-choice; `grantOwnerRole` replaces roles with ORG_OWNER). So TEAM_LEAD also
+  carries BRANCH/DEPARTMENT VIEW (topped up on existing orgs by `OrgRoleProvisioner.provision`). The web form requires at least one role for every
+  user, hides `SUPER_ADMIN` for mindHR Staff and pre-ticks it for a Super Admin.
 
 ## Frontend (`frontend/`)
 

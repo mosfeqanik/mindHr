@@ -1,5 +1,6 @@
 import { useAuth } from '../auth/AuthContext'
 import { PageHeader } from '../components/ui'
+import { userTypeLabel } from '../lib/format'
 
 export default function DashboardPage() {
   const { session } = useAuth()
@@ -12,7 +13,7 @@ export default function DashboardPage() {
             <div className="card">
               <div className="card-body">
                 <h4 className="card-title">Welcome, {session?.fullName}</h4>
-                <h6 className="card-subtitle">Signed in as {session?.userType.replace('_', ' ')}</h6>
+                <h6 className="card-subtitle">Signed in as {userTypeLabel(session?.userType)}</h6>
                 <p className="mb-0">
                   Data scope <strong>{session?.dataScope}</strong> &middot; {session?.authorities.length} permissions
                 </p>

@@ -81,7 +81,8 @@ public class OrgRoleProvisioner {
                             "LEAVE", actions(VIEW, CREATE, APPROVE), "ASSET", actions(VIEW), "DOCUMENT", actions(VIEW),
                             "REQUEST", actions(VIEW, CREATE, APPROVE), "PAYSLIP", actions(VIEW))),
             new RoleDef(TEAM_LEAD, "Manages their direct reports", DataScope.TEAM,
-                    grants("EMPLOYEE", actions(VIEW), "ATTENDANCE", actions(VIEW, CREATE), "SHIFT", actions(VIEW),
+                    grants("EMPLOYEE", actions(VIEW), "BRANCH", actions(VIEW), "DEPARTMENT", actions(VIEW),
+                            "ATTENDANCE", actions(VIEW, CREATE), "SHIFT", actions(VIEW),
                             "LEAVE", actions(VIEW, CREATE, APPROVE), "REQUEST", actions(VIEW, CREATE, APPROVE),
                             "PAYSLIP", actions(VIEW), "ASSET", actions(VIEW), "DOCUMENT", actions(VIEW))),
             new RoleDef(EMPLOYEE, "Regular employee: own attendance, leave, payslips and requests", DataScope.SELF,
@@ -98,7 +99,23 @@ public class OrgRoleProvisioner {
         // One permission lookup for all five roles: one query per permission was ~150 round trips to the DB.
         Map<String, Permission> permissions = permissionsByKey();
         for (RoleDef def : DEFINITIONS) {
-            findOrCreate(organization, def, permissions);
+            Role role = findOrCreate(organization, def, permissions);
+            if (TEAM_LEAD.equals(def.name())) {
+                topUp(role, permissions, "BRANCH", "DEPARTMENT");
+            }
+        }
+    }
+
+    /**
+     * A user now holds exactly one role, so TEAM_LEAD must cover what EMPLOYEE gives (seeing their branch and
+     * department). Roles created before that get the VIEW permissions added; nothing is ever removed.
+     */
+    private void topUp(Role role, Map<String, Permission> known, String... modules) {
+        for (String module : modules) {
+            Permission view = permission(known, module, VIEW);
+            if (role.getPermissions().stream().noneMatch(p -> p.getId().equals(view.getId()))) {
+                role.getPermissions().add(view);
+            }
         }
     }
 
@@ -113,11 +130,14 @@ public class OrgRoleProvisioner {
         return findOrCreate(organization, DEFINITIONS.stream().filter(d -> d.name().equals(OWNER)).findFirst().orElseThrow(), null);
     }
 
-    /** Gives the owner user the ORG_OWNER role if they do not have it yet. */
+    /** Makes ORG_OWNER the owner's only role (a user holds exactly one role). */
     @Transactional
     public void grantOwnerRole(Organization organization, User owner) {
         Role role = ownerRole(organization);
-        if (owner.getRoles().stream().noneMatch(r -> r.getId().equals(role.getId()))) {
+        boolean alreadyOnlyOwner = owner.getRoles().size() == 1
+                && owner.getRoles().stream().allMatch(r -> r.getId().equals(role.getId()));
+        if (!alreadyOnlyOwner) {
+            owner.getRoles().clear();
             owner.getRoles().add(role);
         }
     }

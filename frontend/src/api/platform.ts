@@ -15,6 +15,7 @@ import type {
   PaymentRequest,
   PaymentStatus,
   Receipt,
+  Role,
   Subscription,
   SubscriptionHistory,
   SubscriptionPlan,
@@ -39,6 +40,11 @@ export const organizationsApi = {
 }
 
 export const usersApi = crud<User, UserRequest>('/api/users')
+
+/** Read-only here: roles for the user form (platform roles, or one organization's roles). */
+export const rolesApi = {
+  list: (params?: { organizationId?: number }) => api.get<Role[]>('/api/roles', { params }).then((r) => r.data),
+}
 
 export const subscriptionPlansApi = crud<SubscriptionPlan, SubscriptionPlanRequest>('/api/subscription-plans')
 

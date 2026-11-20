@@ -37,7 +37,9 @@ public class RoleService {
     private final OrganizationRepository organizationRepository;
     private final PermissionRepository permissionRepository;
 
+    /** Platform staff only (the Users page role picker); organization users have no access. */
     public List<RoleResponse> list(Long requestedOrganizationId) {
+        TenantContext.requirePlatformStaff();
         List<Role> roles;
         if (TenantContext.isPlatformStaff()) {
             roles = requestedOrganizationId != null
@@ -51,6 +53,7 @@ public class RoleService {
     }
 
     public RoleResponse getById(Long id) {
+        TenantContext.requirePlatformStaff();
         return RoleMapper.toResponse(findAccessibleEntity(id));
     }
 

@@ -25,3 +25,16 @@ export const orNull = (v: string) => (v.trim() === '' ? null : v.trim())
 export const numOrNull = (v: string) => (v.trim() === '' ? null : Number(v))
 
 export const label = (v: string | null | undefined) => (v ? v.replace(/_/g, ' ') : '-')
+
+/** How each user type is named in the UI; SAAS_STAFF are mindHR's own employees. */
+export const USER_TYPE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  SAAS_STAFF: 'mindHR Staff',
+  ORG_USER: 'Organization User',
+}
+export const userTypeLabel = (v: string | null | undefined) => (v ? (USER_TYPE_LABELS[v] ?? label(v)) : '-')
+
+/** Bangladeshi mobile number: 01[3-9] + 8 digits, optionally with +88 / 88 in front (same rule as the backend). */
+export const MOBILE_NUMBER_RE = /^(\+?88)?01[3-9]\d{8}$/
+/** Removes spaces, dashes and brackets people type, e.g. "017-1234 5678" -> "01712345678". */
+export const cleanPhone = (v: string) => v.replace(/[\s\-()]/g, '')
