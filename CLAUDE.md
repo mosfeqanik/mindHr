@@ -93,6 +93,9 @@ npm run build      # tsc -b && vite build
 docker compose up --build -d   # http://localhost:3000, nginx serves the SPA and proxies /api to http://app:8080
 ```
 
+- **Vercel:** `frontend/vercel.json` (project Root Directory `frontend`, preset Vite). It forwards `/api/*` to the API on
+  Render (`https://mindhr.onrender.com`), so the browser stays same-origin (no CORS), and sends every other path to
+  `index.html` for React Router. Set no `VITE_API_BASE_URL` on Vercel and never put backend secrets there.
 - Token is kept in localStorage; `src/auth/AuthContext.tsx` decodes the JWT claims (`authorities`, `dataScope`, ...). `<Can permission="EMPLOYEE_CREATE">` and the sidebar only hide UI; the backend enforces access.
 - **Platform users' HR modules are mindHR's own staff HR** (shown as "mindHR Staff HR" in the sidebar). One hidden
   internal organization (`Organization.internal`, slug `mindhr-internal`, created by `InternalOrganizationProvisioner`)
