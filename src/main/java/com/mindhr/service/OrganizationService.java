@@ -38,7 +38,10 @@ public class OrganizationService {
 
     public List<OrganizationResponse> listAll() {
         TenantContext.requirePlatformStaff();
-        return organizationRepository.findAll().stream().map(OrganizationMapper::toResponse).toList();
+        // mindHR's own organization is not a client: it is reached through the HR modules, not this list.
+        return organizationRepository.findAll().stream()
+                .filter(o -> !o.isInternal())
+                .map(OrganizationMapper::toResponse).toList();
     }
 
     public OrganizationResponse getById(Long id) {

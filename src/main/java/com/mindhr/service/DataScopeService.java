@@ -78,7 +78,7 @@ public class DataScopeService {
     }
 
     public boolean canAccess(Employee employee) {
-        if (!TenantContext.canAccess(employee.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(employee.getOrganization().getId())) {
             return false;
         }
         Set<Long> visible = visibleEmployeeIds(employee.getOrganization().getId());

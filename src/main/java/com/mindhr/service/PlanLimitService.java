@@ -8,6 +8,7 @@ import com.mindhr.entity.enums.SubscriptionStatus;
 import com.mindhr.exception.PlanLimitExceededException;
 import com.mindhr.repository.EmployeeRepository;
 import com.mindhr.repository.SubscriptionRepository;
+import com.mindhr.security.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,9 @@ public class PlanLimitService {
 
     @Transactional(readOnly = true)
     public void assertCanAddEmployee(Long organizationId) {
+        if (TenantContext.isInternalOrganization(organizationId)) {
+            return; // mindHR's own organization has no plan
+        }
         SubscriptionPlan plan = currentPlan(organizationId);
         Integer max = plan.getMaxEmployees();
         if (max != null && employeeRepository.countByOrganizationId(organizationId) >= max) {
@@ -45,6 +49,9 @@ public class PlanLimitService {
     /** {@code currentBranchCount} is passed in so this service does not depend on the branch module. */
     @Transactional(readOnly = true)
     public void assertCanAddBranch(Long organizationId, long currentBranchCount) {
+        if (TenantContext.isInternalOrganization(organizationId)) {
+            return;
+        }
         SubscriptionPlan plan = currentPlan(organizationId);
         Integer max = plan.getMaxBranches();
         if (max != null && currentBranchCount >= max) {
@@ -55,6 +62,9 @@ public class PlanLimitService {
 
     @Transactional(readOnly = true)
     public void assertFeature(Long organizationId, PlanFeature feature) {
+        if (TenantContext.isInternalOrganization(organizationId)) {
+            return;
+        }
         SubscriptionPlan plan = currentPlan(organizationId);
         if (!plan.getFeatures().contains(feature)) {
             throw new PlanLimitExceededException(

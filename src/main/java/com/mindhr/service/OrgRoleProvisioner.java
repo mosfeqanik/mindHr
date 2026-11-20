@@ -81,7 +81,8 @@ public class OrgRoleProvisioner {
                             "LEAVE", actions(VIEW, CREATE, APPROVE), "ASSET", actions(VIEW), "DOCUMENT", actions(VIEW),
                             "REQUEST", actions(VIEW, CREATE, APPROVE), "PAYSLIP", actions(VIEW))),
             new RoleDef(TEAM_LEAD, "Manages their direct reports", DataScope.TEAM,
-                    grants("EMPLOYEE", actions(VIEW), "ATTENDANCE", actions(VIEW, CREATE), "SHIFT", actions(VIEW),
+                    grants("EMPLOYEE", actions(VIEW), "BRANCH", actions(VIEW), "DEPARTMENT", actions(VIEW),
+                            "ATTENDANCE", actions(VIEW, CREATE), "SHIFT", actions(VIEW),
                             "LEAVE", actions(VIEW, CREATE, APPROVE), "REQUEST", actions(VIEW, CREATE, APPROVE),
                             "PAYSLIP", actions(VIEW), "ASSET", actions(VIEW), "DOCUMENT", actions(VIEW))),
             new RoleDef(EMPLOYEE, "Regular employee: own attendance, leave, payslips and requests", DataScope.SELF,
@@ -93,12 +94,58 @@ public class OrgRoleProvisioner {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
 
+    /** A copy of a built-in organization role's grants (module -> actions), e.g. to reuse them for mindHR staff. */
+    public static Map<String, Set<PermissionAction>> grantsOf(String roleName) {
+        Map<String, Set<PermissionAction>> copy = new LinkedHashMap<>();
+        DEFINITIONS.stream().filter(d -> d.name().equals(roleName)).findFirst().orElseThrow()
+                .grants().forEach((module, acts) -> copy.put(module, acts.isEmpty()
+                        ? EnumSet.noneOf(PermissionAction.class) : EnumSet.copyOf(acts)));
+        return copy;
+    }
+
+    /** Every action on every HR module. */
+    public static Map<String, Set<PermissionAction>> allGrants() {
+        Map<String, Set<PermissionAction>> grants = new LinkedHashMap<>();
+        MODULES.forEach(m -> grants.put(m, EnumSet.allOf(PermissionAction.class)));
+        return grants;
+    }
+
+    /** Adds the missing permissions of {@code grants} to {@code role}; never removes any. */
+    @Transactional
+    public void addGrants(Role role, Map<String, Set<PermissionAction>> grants) {
+        Map<String, Permission> known = permissionsByKey();
+        Set<Long> held = new HashSet<>();
+        role.getPermissions().forEach(p -> held.add(p.getId()));
+        grants.forEach((module, acts) -> acts.forEach(a -> {
+            Permission p = permission(known, module, a);
+            if (held.add(p.getId())) {
+                role.getPermissions().add(p);
+            }
+        }));
+    }
+
     @Transactional
     public void provision(Organization organization) {
         // One permission lookup for all five roles: one query per permission was ~150 round trips to the DB.
         Map<String, Permission> permissions = permissionsByKey();
         for (RoleDef def : DEFINITIONS) {
-            findOrCreate(organization, def, permissions);
+            Role role = findOrCreate(organization, def, permissions);
+            if (TEAM_LEAD.equals(def.name())) {
+                topUp(role, permissions, "BRANCH", "DEPARTMENT");
+            }
+        }
+    }
+
+    /**
+     * A user now holds exactly one role, so TEAM_LEAD must cover what EMPLOYEE gives (seeing their branch and
+     * department). Roles created before that get the VIEW permissions added; nothing is ever removed.
+     */
+    private void topUp(Role role, Map<String, Permission> known, String... modules) {
+        for (String module : modules) {
+            Permission view = permission(known, module, VIEW);
+            if (role.getPermissions().stream().noneMatch(p -> p.getId().equals(view.getId()))) {
+                role.getPermissions().add(view);
+            }
         }
     }
 
@@ -113,11 +160,14 @@ public class OrgRoleProvisioner {
         return findOrCreate(organization, DEFINITIONS.stream().filter(d -> d.name().equals(OWNER)).findFirst().orElseThrow(), null);
     }
 
-    /** Gives the owner user the ORG_OWNER role if they do not have it yet. */
+    /** Makes ORG_OWNER the owner's only role (a user holds exactly one role). */
     @Transactional
     public void grantOwnerRole(Organization organization, User owner) {
         Role role = ownerRole(organization);
-        if (owner.getRoles().stream().noneMatch(r -> r.getId().equals(role.getId()))) {
+        boolean alreadyOnlyOwner = owner.getRoles().size() == 1
+                && owner.getRoles().stream().allMatch(r -> r.getId().equals(role.getId()));
+        if (!alreadyOnlyOwner) {
+            owner.getRoles().clear();
             owner.getRoles().add(role);
         }
     }

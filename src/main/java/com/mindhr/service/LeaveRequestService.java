@@ -28,7 +28,7 @@ public class LeaveRequestService {
     private final DataScopeService scope;
 
     public List<LeaveRequestResponse> list(Long requestedOrganizationId, Long employeeId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         Set<Long> visible = scope.visibleEmployeeIds(organizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .filter(e -> visible == null || visible.contains(e.getEmployee().getId()))
@@ -87,7 +87,7 @@ public class LeaveRequestService {
     private LeaveRequest findAccessibleEntity(Long id) {
         LeaveRequest entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("LeaveRequest not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("LeaveRequest not found: " + id);
         }
         scope.assertCanAccess(entity.getEmployee());

@@ -27,7 +27,7 @@ public class DepartmentService {
     private final OrganizationRepository organizationRepository;
 
     public List<DepartmentResponse> list(Long requestedOrganizationId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .map(DepartmentMapper::toResponse)
                 .toList();
@@ -39,7 +39,7 @@ public class DepartmentService {
 
     @Transactional
     public DepartmentResponse create(DepartmentRequest request) {
-        Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
+        Long organizationId = TenantContext.resolveHrOrganizationId(request.organizationId());
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
         Department entity = new Department();
@@ -101,7 +101,7 @@ public class DepartmentService {
     private Department findAccessibleEntity(Long id) {
         Department entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("Department not found: " + id);
         }
         return entity;

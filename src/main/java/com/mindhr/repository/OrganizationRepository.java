@@ -10,6 +10,8 @@ public interface OrganizationRepository extends JpaRepository<Organization, Long
 
     boolean existsBySlugIgnoreCase(String slug);
 
+    java.util.Optional<Organization> findFirstByInternalTrue();
+
     /** Loads the owner in the same query, since the list shows the owner's name. */
     @Override
     @EntityGraph(attributePaths = "owner")

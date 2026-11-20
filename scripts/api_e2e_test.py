@@ -11,7 +11,7 @@ with positive and negative cases.
   adds new leave / requests / attendance where the old ones would conflict.
 - QA logins (all use password QaTest@123): qa.owner@mindhr.test, qa.lead@mindhr.test (TEAM_LEAD),
   qa.emp1@mindhr.test, qa.emp2@mindhr.test (EMPLOYEE).
-- Exit code 0 when every check passes. Known issues are reported as FAIL on purpose.
+- Exit code 0 when every check passes.
 """
 import argparse
 import base64
@@ -187,12 +187,12 @@ def main():
     expect("Set organization owner", s, b, 200)
     s, b = call("POST", "/api/users", admin, {
         "organizationId": org_id, "email": "qa.owner@mindhr.test", "password": PASSWORD,
-        "fullName": "Dup", "userType": "ORG_USER"})
+        "fullName": "Dup", "phone": "01900000008", "userType": "ORG_USER"})
     expect("Duplicate user email -> 409", s, b, 409)
 
     s, roles = call("GET", f"/api/roles?organizationId={org_id}", admin)
     expect("List org roles", s, roles, 200)
-    role_ids = {r["name"]: r["id"] for r in roles or []}
+    role_ids = {r["name"]: r["id"] for r in roles or [] if r.get("organizationId") == org_id}  # org roles only: platform staff roles share names
     check("Org has the 5 built-in roles",
           {"ORG_OWNER", "HR_ADMIN", "BRANCH_MANAGER", "TEAM_LEAD", "EMPLOYEE"} <= set(role_ids), str(sorted(role_ids)))
 
@@ -256,12 +256,16 @@ def main():
     # TEAM_LEAD role for the lead (Super Admin; roleIds replaces all roles).
     s, u = call("GET", f"/api/users/{lead_user_id}", admin)
     current = {r["id"] for r in (u or {}).get("roles", [])}
-    want = {role_ids["EMPLOYEE"], role_ids["TEAM_LEAD"]}
-    if not want <= current:
+    want = {role_ids["TEAM_LEAD"]}  # a user holds exactly one role
+    if current != want:
         body = {k: u.get(k) for k in ("email", "fullName", "phone", "userType", "active")}
-        body.update(organizationId=org_id, roleIds=sorted(current | want))
+        body.update(organizationId=org_id, roleIds=sorted(want))
         s, u = call("PUT", f"/api/users/{lead_user_id}", admin, body)
-        expect("Give lead the TEAM_LEAD role", s, u, 200)
+        expect("Make TEAM_LEAD the lead's only role", s, u, 200)
+    body = {k: u.get(k) for k in ("email", "fullName", "phone", "userType", "active")}
+    body.update(organizationId=org_id, roleIds=[role_ids["TEAM_LEAD"], role_ids["EMPLOYEE"]])
+    s, b = call("PUT", f"/api/users/{lead_user_id}", admin, body)
+    expect("Two roles on one user -> 400", s, b, 400)
 
     # Leave types
     s, types = call("GET", "/api/leave-types", owner)
@@ -606,7 +610,7 @@ def main():
             lookalike_id = (b or {}).get("id")
         if lookalike_id:
             s, b = call("PUT", f"/api/users/{emp2_uid}", admin,
-                        user_body(u2, roleIds=[r["id"] for r in u2["roles"]] + [lookalike_id]))
+                        user_body(u2, roleIds=[lookalike_id]))  # a user holds exactly one role
             expect("Super Admin assigns that role to emp2", s, b, 200)
             emp2 = login(PEOPLE["emp2"][1], PASSWORD)
             c2 = claims(emp2) if emp2 else {}
@@ -682,6 +686,97 @@ def main():
         expect("Owner reads another organization -> 403/404", s, b, (403, 404))
     s, b = call("GET", "/api/organizations", owner)
     check("Owner's organization list has only theirs", s in (403,) or (s == 200 and all(o["id"] == org_id for o in b)), f"{s}")
+
+    # ------------------------------------------------ Admin user type
+    begin("Admin user type")
+    super_id = claims(admin).get("userId")
+    s, b = call("POST", "/api/users", admin, {
+        "email": "qa.newsuper@mindhr.test", "password": PASSWORD, "fullName": "QA New Super",
+        "phone": "01900000007", "userType": "SUPER_ADMIN"})
+    expect("Adding a Super Admin -> 400", s, b, 400)
+    s, all_users = call("GET", "/api/users", admin)
+    admin_user = find(all_users or [], email="qa.admin@mindhr.test")
+    if not admin_user:
+        s, roles_all = call("GET", "/api/roles", admin)
+        admin_role = next((r["id"] for r in roles_all or [] if r.get("organizationId") is None and r["name"] == "ADMIN"), None)
+        check("Platform ADMIN role exists", admin_role is not None)
+        s, admin_user = call("POST", "/api/users", admin, {
+            "email": "qa.admin@mindhr.test", "password": PASSWORD, "fullName": "QA Admin",
+            "phone": "01900000006", "userType": "ADMIN", "roleIds": [admin_role] if admin_role else []})
+        expect("Super Admin creates an Admin", s, admin_user, (200, 201))
+    plat_admin = login("qa.admin@mindhr.test", PASSWORD)
+    if check("Admin login", plat_admin):
+        s, b = call("GET", "/api/users", plat_admin)
+        expect("Admin lists users", s, b, 200)
+        temp = find(b or [], email="qa.temp@mindhr.test")
+        if not temp:
+            s, temp = call("POST", "/api/users", plat_admin, {
+                "organizationId": org_id, "email": "qa.temp@mindhr.test", "password": PASSWORD,
+                "fullName": "QA Temp", "phone": "01900000005", "userType": "ORG_USER"})
+            expect("Admin creates an org user", s, temp, (200, 201))
+        if temp:
+            s, b = call("DELETE", f"/api/users/{temp['id']}", plat_admin)
+            expect("Admin deletes an org user", s, b, (200, 204))
+        s, b = call("POST", "/api/users", plat_admin, {
+            "email": "qa.newsuper@mindhr.test", "password": PASSWORD, "fullName": "QA New Super",
+            "phone": "01900000007", "userType": "SUPER_ADMIN"})
+        expect("Admin adds a Super Admin -> 400", s, b, 400)
+        s, sa = call("GET", f"/api/users/{super_id}", plat_admin)
+        if expect("Admin reads the Super Admin", s, sa, 200):
+            body = {k: sa.get(k) for k in ("email", "fullName", "phone", "userType", "organizationId", "active")}
+            body["phone"] = body["phone"] or "01900000004"  # the seeded Super Admin may have no phone yet
+            body["password"] = "Hijack@12345"
+            s, b = call("PUT", f"/api/users/{super_id}", plat_admin, body)
+            expect("Admin changes the Super Admin password -> 403", s, b, 403)
+        s, b = call("DELETE", f"/api/users/{super_id}", plat_admin)
+        expect("Admin deletes the Super Admin -> 403", s, b, 403)
+        s, b = call("GET", "/api/system-settings", plat_admin)
+        expect("Admin reads system settings -> 403", s, b, 403)
+        if admin_user:
+            s, b = call("DELETE", f"/api/users/{admin_user['id']}", plat_admin)
+            expect("Admin deletes own account -> 400", s, b, 400)
+    s, b = call("DELETE", f"/api/users/{super_id}", admin)
+    expect("Super Admin deletes own account -> 400", s, b, 400)
+
+    # ------------------------------------------------ mindHR staff HR (platform users' HR modules)
+    begin("mindHR staff HR")
+    s, b = call("GET", "/api/organizations", admin)
+    check("Internal organization is not in the client list",
+          s == 200 and all(o.get("slug") != "mindhr-internal" for o in b), f"{s}")
+    s, staff = call("GET", "/api/employees", admin)
+    expect("Super Admin lists mindHR staff (no organization picked)", s, staff, 200)
+    s, b = call("GET", f"/api/employees?organizationId={org_id}", admin)
+    check("Super Admin cannot read a client's employees",
+          s == 200 and all(e["organizationId"] != org_id for e in b), f"{s}")
+    staffer = find(staff or [], email="qa.staff@mindhr.test")
+    if not staffer:
+        s, staffer = call("POST", "/api/employees", admin, {
+            "fullName": "QA Staff", "email": "qa.staff@mindhr.test", "phone": "01900000003",
+            "position": "Support", "employmentType": "FULL_TIME", "joinedAt": "2026-01-01",
+            "password": PASSWORD, "organizationId": org_id})
+        expect("Super Admin adds a mindHR staff employee", s, staffer, (200, 201))
+    if staffer:
+        check("Staff employee is in mindHR's organization, not the client's", staffer["organizationId"] != org_id)
+        s, u = call("GET", f"/api/users/{staffer['userId']}", admin)
+        check("Staff employee's login is mindHR Staff with the EMPLOYEE role",
+              s == 200 and u["userType"] == "SAAS_STAFF" and u["organizationId"] is None
+              and [r["name"] for r in u["roles"]] == ["EMPLOYEE"], f"{s} {u and u.get('userType')}")
+        staff_tok = login("qa.staff@mindhr.test", PASSWORD)
+        if check("Staff employee login", staff_tok):
+            c = claims(staff_tok)
+            check("Staff token: SELF scope and an employee profile",
+                  c.get("dataScope") == "SELF" and c.get("employeeId") == staffer["id"], str(c.get("dataScope")))
+            s, b = call("GET", "/api/employees", staff_tok)
+            check("Staff employee sees only themselves",
+                  s == 200 and [e["id"] for e in b] == [staffer["id"]], f"{s} {len(b or [])}")
+            s, b = call("GET", "/api/employees/me", staff_tok)
+            expect("Staff employee reads own profile", s, b, 200)
+    if plat_admin:
+        s, b = call("GET", "/api/employees", plat_admin)
+        check("Admin lists mindHR staff", s == 200 and all(e["organizationId"] != org_id for e in b), f"{s}")
+    s, b = call("GET", "/api/employees", owner)
+    check("Owner still sees only their organization",
+          s == 200 and all(e["organizationId"] == org_id for e in b), f"{s}")
 
     return finish()
 

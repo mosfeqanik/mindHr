@@ -27,7 +27,7 @@ public class BranchService {
     private final PlanLimitService planLimitService;
 
     public List<BranchResponse> list(Long requestedOrganizationId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .map(BranchMapper::toResponse)
                 .toList();
@@ -39,7 +39,7 @@ public class BranchService {
 
     @Transactional
     public BranchResponse create(BranchRequest request) {
-        Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
+        Long organizationId = TenantContext.resolveHrOrganizationId(request.organizationId());
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
         planLimitService.assertCanAddBranch(organizationId, repository.countByOrganizationId(organizationId));
@@ -92,7 +92,7 @@ public class BranchService {
     private Branch findAccessibleEntity(Long id) {
         Branch entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Branch not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("Branch not found: " + id);
         }
         return entity;

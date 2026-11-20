@@ -62,7 +62,8 @@ class CustomUserDetailsTest {
         CustomUserDetails details = CustomUserDetails.fromUser(user(UserType.SUPER_ADMIN, null), null);
 
         assertThat(authorities(details)).contains("ROLE_SUPER_ADMIN").doesNotContain("ROLE_SAAS_STAFF");
-        assertThat(details.getDataScope()).isEqualTo(DataScope.PLATFORM);
+        // HR modules for platform users cover mindHR's own staff; the Super Admin sees all of it.
+        assertThat(details.getDataScope()).isEqualTo(DataScope.ORGANIZATION);
     }
 
     @Test

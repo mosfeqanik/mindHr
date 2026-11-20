@@ -15,7 +15,45 @@ import org.springframework.security.core.context.SecurityContextHolder;
  */
 public final class TenantContext {
 
+    /** mindHR's own organization (set at startup by {@code InternalOrganizationProvisioner}). */
+    private static volatile Long internalOrganizationId;
+
     private TenantContext() {
+    }
+
+    public static void setInternalOrganizationId(Long id) {
+        internalOrganizationId = id;
+    }
+
+    public static Long internalOrganizationId() {
+        return internalOrganizationId;
+    }
+
+    public static boolean isInternalOrganization(Long organizationId) {
+        return organizationId != null && organizationId.equals(internalOrganizationId);
+    }
+
+    /**
+     * The organization an HR-module request works on. Platform users (Super Admin, Admin, mindHR Staff) only ever
+     * work on mindHR's own staff, so they always get the internal organization, whatever the request asks for;
+     * client HR data stays private. An organization user gets their own organization.
+     */
+    public static Long resolveHrOrganizationId(Long requestedOrganizationId) {
+        if (isPlatformStaff()) {
+            if (internalOrganizationId == null) {
+                throw new IllegalStateException("mindHR's internal organization is not set up yet");
+            }
+            return internalOrganizationId;
+        }
+        return resolveOrganizationId(requestedOrganizationId);
+    }
+
+    /** Whether the caller may read/modify an HR record owned by {@code entityOrganizationId}. */
+    public static boolean canAccessHr(Long entityOrganizationId) {
+        if (isPlatformStaff()) {
+            return isInternalOrganization(entityOrganizationId);
+        }
+        return canAccess(entityOrganizationId);
     }
 
     public static JwtAuthenticatedPrincipal currentPrincipal() {
@@ -28,7 +66,7 @@ public final class TenantContext {
 
     public static boolean isPlatformStaff() {
         UserType userType = currentPrincipal().userType();
-        return userType == UserType.SUPER_ADMIN || userType == UserType.SAAS_STAFF;
+        return userType == UserType.SUPER_ADMIN || userType == UserType.ADMIN || userType == UserType.SAAS_STAFF;
     }
 
     /**
@@ -66,6 +104,18 @@ public final class TenantContext {
         if (!isPlatformStaff()) {
             throw new AccessDeniedException("This operation is restricted to SaaS platform staff");
         }
+    }
+
+    /** Managing user accounts: the Super Admin or an Admin. */
+    public static void requireUserManager() {
+        UserType userType = currentPrincipal().userType();
+        if (userType != UserType.SUPER_ADMIN && userType != UserType.ADMIN) {
+            throw new AccessDeniedException("This operation is restricted to the Super Admin or an Admin");
+        }
+    }
+
+    public static boolean isSuperAdmin() {
+        return currentPrincipal().userType() == UserType.SUPER_ADMIN;
     }
 
     /** For sensitive platform actions (managing other platform accounts, system roles, ...). */

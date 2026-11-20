@@ -24,7 +24,8 @@ public class EnumCheckConstraintRunner implements ApplicationRunner {
 
     /** {@code table.column} of each enum column that has gained values since its table was first created. */
     private static final List<String> COLUMNS = List.of(
-            "work_requests.request_type");
+            "work_requests.request_type",
+            "users.user_type");
 
     private final JdbcTemplate jdbcTemplate;
 

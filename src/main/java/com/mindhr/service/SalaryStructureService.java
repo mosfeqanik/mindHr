@@ -27,7 +27,7 @@ public class SalaryStructureService {
     private final EmployeeTimelineService eventService;
 
     public List<SalaryStructureResponse> list(Long requestedOrganizationId, Long employeeId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         Set<Long> visible = scope.visibleEmployeeIds(organizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .filter(e -> visible == null || visible.contains(e.getEmployee().getId()))
@@ -42,7 +42,7 @@ public class SalaryStructureService {
 
     @Transactional
     public SalaryStructureResponse create(SalaryStructureRequest request) {
-        Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
+        Long organizationId = TenantContext.resolveHrOrganizationId(request.organizationId());
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
         SalaryStructure entity = new SalaryStructure();
@@ -76,7 +76,7 @@ public class SalaryStructureService {
     private SalaryStructure findAccessibleEntity(Long id) {
         SalaryStructure entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("SalaryStructure not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("SalaryStructure not found: " + id);
         }
         scope.assertCanAccess(entity.getEmployee());
