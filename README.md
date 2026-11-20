@@ -70,7 +70,8 @@ npm run build
 1. Render dashboard > **New > Blueprint** > connect this repo > branch `main`.
 2. Enter the secret values when asked: `DB_URL`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`. Render generates `JWT_SECRET`.
 3. When the deploy is live, open `https://<service>.onrender.com/swagger-ui.html`.
-4. Mobile app: `./gradlew installDebug -PapiBaseUrl=https://<service>.onrender.com/`.
+4. Mobile app: `./gradlew assembleRelease` builds an APK that uses `https://mindhr.onrender.com/`
+   (`app/build/outputs/apk/release/app-release.apk`). Debug builds still use the local backend.
 
 The app listens on `$PORT` (set by Render). The free plan sleeps after 15 minutes idle; the first request then takes
 30-60 s. The seed admin is created only when the database has **no users yet**.
@@ -81,7 +82,7 @@ The app listens on `$PORT` (set by Render). The free plan sleeps after 15 minute
 
 1. Netlify dashboard > **Add new site > Import an existing project** > GitHub > this repo. Production branch `main`.
    Leave the build fields as Netlify fills them from `netlify.toml`, and add no environment variables.
-2. If your Render URL is not `https://mindhr-api.onrender.com`, change the `/api/*` redirect in `netlify.toml`.
+2. If your Render URL is not `https://mindhr.onrender.com`, change the `/api/*` redirect in `netlify.toml`.
 
 The browser calls `/api/...` on the Netlify domain and Netlify forwards it to Render (like `frontend/nginx.conf` does in
 Docker), so the backend needs no CORS config. Every other path serves `index.html` so React Router pages load on refresh.

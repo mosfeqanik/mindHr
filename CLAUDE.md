@@ -129,6 +129,7 @@ Play Services Location. No DI framework, no ViewModels: screens load data with `
 sh ./gradlew assembleDebug                     # app/build/outputs/apk/debug/app-debug.apk
 sh ./gradlew installDebug                      # emulator: backend at http://10.0.2.2:8080/
 sh ./gradlew installDebug -PapiBaseUrl=http://<pc-ip>:8080/   # real phone on the same Wi-Fi
+sh ./gradlew assembleRelease                   # APK for the live API https://mindhr.onrender.com/ (debug-signed)
 ```
 
 - If the build fails with `jlink executable .../redhat.java.../jre/.../jlink does not exist`: VS Code generated
