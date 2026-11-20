@@ -27,7 +27,7 @@ public class AssetAssignmentService {
     private final DataScopeService scope;
 
     public List<AssetAssignmentResponse> list(Long requestedOrganizationId, Long employeeId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         Set<Long> visible = scope.visibleEmployeeIds(organizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .filter(e -> visible == null || visible.contains(e.getEmployee().getId()))
@@ -66,7 +66,7 @@ public class AssetAssignmentService {
     private AssetAssignment findAccessibleEntity(Long id) {
         AssetAssignment entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("AssetAssignment not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("AssetAssignment not found: " + id);
         }
         scope.assertCanAccess(entity.getEmployee());

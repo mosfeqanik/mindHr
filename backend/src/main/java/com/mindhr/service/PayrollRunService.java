@@ -26,7 +26,7 @@ public class PayrollRunService {
     private final OrganizationRepository organizationRepository;
 
     public List<PayrollRunResponse> list(Long requestedOrganizationId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .map(PayrollRunMapper::toResponse)
                 .toList();
@@ -62,7 +62,7 @@ public class PayrollRunService {
     private PayrollRun findAccessibleEntity(Long id) {
         PayrollRun entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PayrollRun not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("PayrollRun not found: " + id);
         }
         return entity;

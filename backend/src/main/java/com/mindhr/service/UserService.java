@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * A "platform account" (organizationId null, or userType SUPER_ADMIN/SAAS_STAFF) may only be
- * created or modified by an existing Super Admin, preventing privilege escalation. An "org
+ * Users are managed by the Super Admin or an Admin. Super Admin accounts cannot be created, and only a
+ * Super Admin may edit or delete one, preventing privilege escalation. An "org
  * account" is scoped like any other {@code Tenant} via {@link TenantContext}, even though
  * {@code User} itself carries a nullable organization rather than extending it.
  */
@@ -56,10 +56,16 @@ public class UserService {
         return UserMapper.toResponse(findAccessibleEntity(id));
     }
 
-    /** Only the Super Admin creates users of any type (Super Admin, SaaS Staff, Org User) and sets passwords. */
+    /**
+     * The Super Admin or an Admin creates Admin, mindHR Staff and Org User accounts and sets their passwords.
+     * Super Admin accounts cannot be added: only the seeded one(s) exist.
+     */
     @Transactional
     public UserResponse create(UserRequest request) {
-        TenantContext.requireSuperAdmin();
+        TenantContext.requireUserManager();
+        if (request.userType() == UserType.SUPER_ADMIN) {
+            throw new IllegalArgumentException("Super Admin accounts cannot be added");
+        }
         if (userRepository.existsByEmailIgnoreCase(request.email())) {
             throw new DuplicateResourceException("A user with email '" + request.email() + "' already exists");
         }
@@ -71,7 +77,6 @@ public class UserService {
         User user = new User();
 
         if (platformAccount) {
-            TenantContext.requireSuperAdmin();
             user.setOrganization(null);
         } else {
             Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
@@ -93,13 +98,19 @@ public class UserService {
 
     @Transactional
     public UserResponse update(Long id, UserRequest request) {
-        TenantContext.requireSuperAdmin();
+        TenantContext.requireUserManager();
         User user = findAccessibleEntity(id);
-        guardIfPlatformAccount(user);
+        guardSuperAdminAccount(user);
+        // A Super Admin stays a Super Admin, and nobody else can be turned into one.
+        boolean wasSuperAdmin = user.getUserType() == UserType.SUPER_ADMIN;
+        if (wasSuperAdmin != (request.userType() == UserType.SUPER_ADMIN)) {
+            throw new IllegalArgumentException(wasSuperAdmin
+                    ? "A Super Admin's user type cannot be changed"
+                    : "A user cannot be changed into a Super Admin");
+        }
 
         boolean becomesPlatformAccount = isPlatformAccount(request.organizationId(), request.userType());
         if (becomesPlatformAccount) {
-            TenantContext.requireSuperAdmin();
             user.setOrganization(null);
         } else {
             Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
@@ -134,19 +145,23 @@ public class UserService {
 
     @Transactional
     public void delete(Long id) {
-        TenantContext.requireSuperAdmin();
+        TenantContext.requireUserManager();
         User user = findAccessibleEntity(id);
-        guardIfPlatformAccount(user);
+        guardSuperAdminAccount(user);
+        if (user.getId().equals(TenantContext.currentPrincipal().userId())) {
+            throw new IllegalArgumentException("You cannot delete your own account");
+        }
         userRepository.delete(user);
     }
 
     private boolean isPlatformAccount(Long organizationId, UserType userType) {
-        return organizationId == null && (userType == UserType.SUPER_ADMIN || userType == UserType.SAAS_STAFF);
+        return organizationId == null && (userType == UserType.SUPER_ADMIN || userType == UserType.ADMIN
+                || userType == UserType.SAAS_STAFF);
     }
 
-    /** A platform account may only be touched by a Super Admin, even one that is otherwise "accessible". */
-    private void guardIfPlatformAccount(User user) {
-        if (user.getOrganization() == null || user.getUserType() != com.mindhr.entity.enums.UserType.ORG_USER) {
+    /** Only a Super Admin may edit (incl. the password) or delete a Super Admin account; an Admin may not. */
+    private void guardSuperAdminAccount(User user) {
+        if (user.getUserType() == UserType.SUPER_ADMIN) {
             TenantContext.requireSuperAdmin();
         }
     }

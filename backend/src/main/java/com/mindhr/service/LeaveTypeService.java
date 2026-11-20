@@ -25,7 +25,7 @@ public class LeaveTypeService {
     private final OrganizationRepository organizationRepository;
 
     public List<LeaveTypeResponse> list(Long requestedOrganizationId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .map(LeaveTypeMapper::toResponse)
                 .toList();
@@ -37,7 +37,7 @@ public class LeaveTypeService {
 
     @Transactional
     public LeaveTypeResponse create(LeaveTypeRequest request) {
-        Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
+        Long organizationId = TenantContext.resolveHrOrganizationId(request.organizationId());
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
         LeaveType entity = new LeaveType();
@@ -69,7 +69,7 @@ public class LeaveTypeService {
     private LeaveType findAccessibleEntity(Long id) {
         LeaveType entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("LeaveType not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("LeaveType not found: " + id);
         }
         return entity;

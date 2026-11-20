@@ -29,6 +29,7 @@ export const label = (v: string | null | undefined) => (v ? v.replace(/_/g, ' ')
 /** How each user type is named in the UI; SAAS_STAFF are mindHR's own employees. */
 export const USER_TYPE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
+  ADMIN: 'Admin',
   SAAS_STAFF: 'mindHR Staff',
   ORG_USER: 'Organization User',
 }

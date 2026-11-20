@@ -64,12 +64,16 @@ public class CustomUserDetails implements UserDetails {
         return new CustomUserDetails(user, employee);
     }
 
-    /** Platform users are always PLATFORM; otherwise the widest scope among the user's roles. */
+    /**
+     * The widest scope among the user's roles. In the HR modules a platform user works on mindHR's own staff: the
+     * Super Admin and an Admin see all of it (ORGANIZATION), mindHR Staff get their platform role's scope.
+     */
     private static DataScope widestScope(User user) {
-        if (user.getUserType() != UserType.ORG_USER) {
-            return DataScope.PLATFORM;
+        if (user.getUserType() == UserType.SUPER_ADMIN || user.getUserType() == UserType.ADMIN) {
+            return DataScope.ORGANIZATION;
         }
         return user.getRoles().stream()
+                .filter(r -> r.effectiveDataScope() != DataScope.PLATFORM)
                 .map(Role::effectiveDataScope)
                 .reduce(DataScope::widest)
                 .orElse(DataScope.SELF);
@@ -90,12 +94,11 @@ public class CustomUserDetails implements UserDetails {
     }
 
     /**
-     * The Super Admin may work inside any organization's HR modules, so it holds every HR
-     * permission. Organization isolation still applies: platform staff must name the
-     * organization (see {@link TenantContext#resolveOrganizationId}).
+     * The Super Admin and an Admin manage mindHR's own staff HR, so they hold every HR permission. Platform users'
+     * HR requests always work on the internal organization (see {@link TenantContext#resolveHrOrganizationId}).
      */
     private static Stream<String> superAdminHrAuthorities(UserType userType) {
-        if (userType != UserType.SUPER_ADMIN) {
+        if (userType != UserType.SUPER_ADMIN && userType != UserType.ADMIN) {
             return Stream.empty();
         }
         return OrgRoleProvisioner.MODULES.stream()

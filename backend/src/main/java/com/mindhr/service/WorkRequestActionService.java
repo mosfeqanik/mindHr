@@ -84,7 +84,7 @@ public class WorkRequestActionService {
     private WorkRequest find(Long id) {
         WorkRequest workRequest = workRequestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found: " + id));
-        if (!TenantContext.canAccess(workRequest.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(workRequest.getOrganization().getId())) {
             throw new ResourceNotFoundException("Request not found: " + id);
         }
         return workRequest;

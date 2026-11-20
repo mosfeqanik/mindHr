@@ -29,6 +29,12 @@ All QA accounts use the same password: **`QaTest@123`**
 **Super Admin** (platform side: organizations, plans, users, roles): email and password are `SEED_ADMIN_EMAIL` and
 `SEED_ADMIN_PASSWORD` in `backend/.env`. They are not copied here on purpose.
 
+**Admin** `qa.admin@mindhr.test` / `QaTest@123` (user type Admin, platform role `ADMIN`): manages users but not the
+Super Admin, plans or settings. The e2e test creates it.
+
+**mindHR staff employee** `qa.staff@mindhr.test` / `QaTest@123` (mindHR Staff, role `EMPLOYEE`, SELF scope): an
+employee of mindHR itself, for testing staff self-service in **mindHR Staff HR**. The e2e test creates it.
+
 ## Test data
 
 | Item | Value |

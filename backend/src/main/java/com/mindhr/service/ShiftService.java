@@ -25,7 +25,7 @@ public class ShiftService {
     private final OrganizationRepository organizationRepository;
 
     public List<ShiftResponse> list(Long requestedOrganizationId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .map(ShiftMapper::toResponse)
                 .toList();
@@ -37,7 +37,7 @@ public class ShiftService {
 
     @Transactional
     public ShiftResponse create(ShiftRequest request) {
-        Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
+        Long organizationId = TenantContext.resolveHrOrganizationId(request.organizationId());
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
         Shift entity = new Shift();
@@ -69,7 +69,7 @@ public class ShiftService {
     private Shift findAccessibleEntity(Long id) {
         Shift entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("Shift not found: " + id);
         }
         return entity;

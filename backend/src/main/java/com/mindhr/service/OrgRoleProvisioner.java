@@ -94,6 +94,36 @@ public class OrgRoleProvisioner {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
 
+    /** A copy of a built-in organization role's grants (module -> actions), e.g. to reuse them for mindHR staff. */
+    public static Map<String, Set<PermissionAction>> grantsOf(String roleName) {
+        Map<String, Set<PermissionAction>> copy = new LinkedHashMap<>();
+        DEFINITIONS.stream().filter(d -> d.name().equals(roleName)).findFirst().orElseThrow()
+                .grants().forEach((module, acts) -> copy.put(module, acts.isEmpty()
+                        ? EnumSet.noneOf(PermissionAction.class) : EnumSet.copyOf(acts)));
+        return copy;
+    }
+
+    /** Every action on every HR module. */
+    public static Map<String, Set<PermissionAction>> allGrants() {
+        Map<String, Set<PermissionAction>> grants = new LinkedHashMap<>();
+        MODULES.forEach(m -> grants.put(m, EnumSet.allOf(PermissionAction.class)));
+        return grants;
+    }
+
+    /** Adds the missing permissions of {@code grants} to {@code role}; never removes any. */
+    @Transactional
+    public void addGrants(Role role, Map<String, Set<PermissionAction>> grants) {
+        Map<String, Permission> known = permissionsByKey();
+        Set<Long> held = new HashSet<>();
+        role.getPermissions().forEach(p -> held.add(p.getId()));
+        grants.forEach((module, acts) -> acts.forEach(a -> {
+            Permission p = permission(known, module, a);
+            if (held.add(p.getId())) {
+                role.getPermissions().add(p);
+            }
+        }));
+    }
+
     @Transactional
     public void provision(Organization organization) {
         // One permission lookup for all five roles: one query per permission was ~150 round trips to the DB.

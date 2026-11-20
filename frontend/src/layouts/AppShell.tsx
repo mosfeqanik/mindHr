@@ -43,8 +43,10 @@ interface NavItem {
   feature?: PlanFeature
 }
 
-// 'platform' and 'account' entries are for SaaS-side users (SUPER_ADMIN / SAAS_STAFF);
+// 'platform' and 'account' entries are for SaaS-side users (SUPER_ADMIN / ADMIN / SAAS_STAFF);
 // 'modules' entries are filtered by the user's authorities (backend permission = MODULE_VIEW).
+// For a platform user the HR modules always show mindHR's own staff (the backend picks mindHR's internal
+// organization), so they need no organization picked and no plan check.
 const NAV: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: Home },
   { to: '/organizations', label: 'Organizations', icon: Globe, section: 'platform' },
@@ -55,14 +57,14 @@ const NAV: NavItem[] = [
   { to: '/billing', label: 'Billing', icon: CreditCard, section: 'account', orgScoped: true },
   { to: '/contracts', label: 'Contracts', icon: FileText, section: 'account', orgScoped: true },
   { to: '/support-tickets', label: 'Support Tickets', icon: LifeBuoy, section: 'account', orgScoped: true },
-  { to: '/employees', label: 'Employees', icon: Users, section: 'modules', permission: 'EMPLOYEE_VIEW', orgScoped: true },
-  { to: '/branches', label: 'Branches', icon: MapPin, section: 'modules', permission: 'BRANCH_VIEW', orgScoped: true },
-  { to: '/departments', label: 'Departments', icon: Grid, section: 'modules', permission: 'DEPARTMENT_VIEW', orgScoped: true },
-  { to: '/attendance', label: 'Attendance', icon: Clock, section: 'modules', permission: 'ATTENDANCE_VIEW', orgScoped: true, feature: 'ATTENDANCE' },
-  { to: '/shifts', label: 'Shifts', icon: Calendar, section: 'modules', permission: 'SHIFT_VIEW', orgScoped: true, feature: 'SHIFTS' },
-  { to: '/leave', label: 'Leave', icon: Briefcase, section: 'modules', permission: 'LEAVE_VIEW', orgScoped: true, feature: 'LEAVE' },
-  { to: '/payroll', label: 'Payroll', icon: DollarSign, section: 'modules', permission: 'PAYROLL_VIEW', orgScoped: true, feature: 'PAYROLL' },
-  { to: '/assets', label: 'Assets', icon: Box, section: 'modules', permission: 'ASSET_VIEW', orgScoped: true, feature: 'ASSETS' },
+  { to: '/employees', label: 'Employees', icon: Users, section: 'modules', permission: 'EMPLOYEE_VIEW' },
+  { to: '/branches', label: 'Branches', icon: MapPin, section: 'modules', permission: 'BRANCH_VIEW' },
+  { to: '/departments', label: 'Departments', icon: Grid, section: 'modules', permission: 'DEPARTMENT_VIEW' },
+  { to: '/attendance', label: 'Attendance', icon: Clock, section: 'modules', permission: 'ATTENDANCE_VIEW', feature: 'ATTENDANCE' },
+  { to: '/shifts', label: 'Shifts', icon: Calendar, section: 'modules', permission: 'SHIFT_VIEW', feature: 'SHIFTS' },
+  { to: '/leave', label: 'Leave', icon: Briefcase, section: 'modules', permission: 'LEAVE_VIEW', feature: 'LEAVE' },
+  { to: '/payroll', label: 'Payroll', icon: DollarSign, section: 'modules', permission: 'PAYROLL_VIEW', feature: 'PAYROLL' },
+  { to: '/assets', label: 'Assets', icon: Box, section: 'modules', permission: 'ASSET_VIEW', feature: 'ASSETS' },
 ]
 
 const SECTION_TITLES: Record<Section, string> = { platform: 'Platform', account: 'Client account', modules: 'HR modules' }
@@ -111,15 +113,14 @@ export function AppShell() {
   }, [location.pathname, small])
   const isActive = (to: string) => (to === '/' ? location.pathname === '/' : location.pathname.startsWith(to))
 
-  // The organization's plan decides which feature modules show. A platform user without an
-  // organization has no plan to check, so they see every module.
-  const hasOrg = !isPlatform || orgId != null
+  // An organization user's plan decides which feature modules show. Platform users' HR modules are for
+  // mindHR's own staff, which has no plan, so they see every module their permissions allow.
   const plan = useQuery({
-    queryKey: ['current-plan', isPlatform ? orgId : 'own'],
+    queryKey: ['current-plan', 'own'],
     queryFn: () => subscriptionsApi.current(),
-    enabled: hasOrg,
+    enabled: !isPlatform,
   })
-  const planAllows = (f: PlanFeature) => !hasOrg || (plan.data?.features.includes(f) ?? false)
+  const planAllows = (f: PlanFeature) => isPlatform || (plan.data?.features.includes(f) ?? false)
 
   const visible = (n: NavItem) => {
     if (n.section === 'platform' || n.section === 'account') return isPlatform && (!n.superAdminOnly || isSuperAdmin)
@@ -224,7 +225,7 @@ export function AppShell() {
               {renderItem(NAV[0])}
               {sections.map((s) => (
                 <Fragment key={s.key}>
-                  {section(SECTION_TITLES[s.key])}
+                  {section(isPlatform && s.key === 'modules' ? 'mindHR Staff HR' : SECTION_TITLES[s.key])}
                   {s.items.map(renderItem)}
                 </Fragment>
               ))}

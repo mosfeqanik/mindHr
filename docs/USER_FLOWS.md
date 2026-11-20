@@ -27,7 +27,7 @@ side; organization users get one or more of the 5 built-in roles.
 flowchart TB
     subgraph SAAS["SaaS company (platform)"]
         SA["Super Admin<br/>all organizations, billing, users, roles"]
-        ST["SaaS Staff<br/>support / finance / sales<br/>no HR data"]
+        ST["SaaS Staff<br/>support / finance / sales<br/>mindHR's own staff HR only"]
     end
 
     subgraph ORG["Client organization (tenant)"]
@@ -55,8 +55,9 @@ flowchart TB
 
 | User type | Role(s) | Uses | Data scope |
 |---|---|---|---|
-| `SUPER_ADMIN` | platform | Web app | every organization |
-| `SAAS_STAFF` | platform role (Support, Finance, Sales) | Web app | platform data only, **no HR data** |
+| `SUPER_ADMIN` | platform | Web app | every organization's platform data + all of mindHR's staff HR; **no client HR data** |
+| `ADMIN` | platform role `ADMIN` | Web app | platform data + user management + all of mindHR's staff HR; **no client HR data**; cannot touch Super Admins, plans or settings |
+| `SAAS_STAFF` | platform role (HR Admin, Accounts, Team Lead, Employee) | Web app (+ mobile) | platform data + mindHR's staff HR by role scope; **no client HR data** |
 | `ORG_USER` | `ORG_OWNER` | Web app (+ mobile) | `ORGANIZATION` |
 | `ORG_USER` | `HR_ADMIN` | Web app (+ mobile) | `ORGANIZATION` |
 | `ORG_USER` | `BRANCH_MANAGER` | Mobile + web | `BRANCH` |

@@ -27,7 +27,8 @@ import {
 import { MOBILE_NUMBER_RE, cleanPhone, label, numOrNull, orNull, userTypeLabel } from '../../lib/format'
 import { AddButton, Card } from './shared'
 
-const USER_TYPES: UserType[] = ['SUPER_ADMIN', 'SAAS_STAFF', 'ORG_USER']
+// Super Admin accounts cannot be added; an existing Super Admin keeps its type (the select is locked).
+const USER_TYPES: UserType[] = ['ADMIN', 'SAAS_STAFF', 'ORG_USER']
 
 /** Built per form: a new user needs a password, an existing one keeps theirs when the field is empty. */
 const makeSchema = (isNew: boolean) => z
@@ -40,7 +41,7 @@ const makeSchema = (isNew: boolean) => z
         .transform(cleanPhone)
         .refine((v) => v.length > 0, 'Mobile number is required')
         .refine((v) => v.length === 0 || MOBILE_NUMBER_RE.test(v), 'Enter a valid Bangladeshi mobile number, e.g. 01712345678'),
-    userType: z.enum(['SUPER_ADMIN', 'SAAS_STAFF', 'ORG_USER']),
+    userType: z.enum(['SUPER_ADMIN', 'ADMIN', 'SAAS_STAFF', 'ORG_USER']),
     organizationId: z.string(),
     roleIds: z.array(z.number()),
     active: z.boolean(),
@@ -105,12 +106,15 @@ function UserForm({ item, onClose, onSaved }: { item: User | null; onClose: () =
     queryFn: () => rolesApi.list(orgId != null ? { organizationId: orgId } : undefined),
     enabled: !isOrgUser || orgId != null,
   })
-  // The SUPER_ADMIN role unlocks Super Admin powers (plans, system settings), so mindHR Staff never get it;
-  // they choose from the staff roles (HR Admin, Accounts, Team Lead, Employee).
+  // The SUPER_ADMIN role unlocks Super Admin powers (plans, system settings), so only a Super Admin gets it;
+  // Admins and mindHR Staff choose from the other platform roles.
   const roleOptions = (roles.data ?? []).filter(
-    (r) => r.organizationId === orgId && !(userType === 'SAAS_STAFF' && r.name === 'SUPER_ADMIN'),
+    (r) => r.organizationId === orgId && !(userType !== 'SUPER_ADMIN' && r.name === 'SUPER_ADMIN'),
   )
-  const superAdminRoleId = (roles.data ?? []).find((r) => r.organizationId == null && r.name === 'SUPER_ADMIN')?.id
+  const platformRoleId = (name: string) =>
+    (roles.data ?? []).find((r) => r.organizationId == null && r.name === name)?.id
+  const superAdminRoleId = platformRoleId('SUPER_ADMIN')
+  const adminRoleId = platformRoleId('ADMIN')
 
   // Changing the user's side or organization makes the old role choices invalid.
   const firstRender = useRef(true)
@@ -122,12 +126,13 @@ function UserForm({ item, onClose, onSaved }: { item: User | null; onClose: () =
     setValue('roleIds', [])
   }, [userType, organizationId, setValue])
 
-  // A Super Admin user needs the SUPER_ADMIN role for the pages that check it; tick it for them.
+  // A Super Admin needs the SUPER_ADMIN role for the pages that check it; an Admin gets the ADMIN role. Tick it.
   useEffect(() => {
-    if (userType === 'SUPER_ADMIN' && superAdminRoleId != null && roleIds.length === 0) {
-      setValue('roleIds', [superAdminRoleId])
+    const preset = userType === 'SUPER_ADMIN' ? superAdminRoleId : userType === 'ADMIN' ? adminRoleId : undefined
+    if (preset != null && roleIds.length === 0) {
+      setValue('roleIds', [preset])
     }
-  }, [userType, superAdminRoleId, roleIds.length, setValue])
+  }, [userType, superAdminRoleId, adminRoleId, roleIds.length, setValue])
 
   const chooseRole = (id: number) => setValue('roleIds', [id], { shouldValidate: true })
 
@@ -186,13 +191,18 @@ function UserForm({ item, onClose, onSaved }: { item: User | null; onClose: () =
             </div>
             <div className="col-md-6">
               <Field label="User type" required>
-                <Select {...register('userType')}>
-                  {USER_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {userTypeLabel(t)}
-                    </option>
-                  ))}
-                </Select>
+                {item?.userType === 'SUPER_ADMIN' ? (
+                  // A Super Admin's type cannot change; the value stays in the form's defaults.
+                  <Input value={userTypeLabel('SUPER_ADMIN')} readOnly />
+                ) : (
+                  <Select {...register('userType')}>
+                    {USER_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {userTypeLabel(t)}
+                      </option>
+                    ))}
+                  </Select>
+                )}
               </Field>
             </div>
             {isOrgUser && (
@@ -310,9 +320,11 @@ function UserDetails({
 }
 
 export default function UsersPage() {
-  // Only the Super Admin creates, edits (including passwords) and deletes users; mindHR staff can only view.
+  // The Super Admin and Admins create, edit (including passwords) and delete users; mindHR staff can only view.
+  // Only a Super Admin may touch a Super Admin account, and nobody deletes their own account.
   const { session } = useAuth()
-  const canManage = session?.userType === 'SUPER_ADMIN'
+  const canManage = session?.userType === 'SUPER_ADMIN' || session?.userType === 'ADMIN'
+  const canEditUser = (u: User) => canManage && (u.userType !== 'SUPER_ADMIN' || session?.userType === 'SUPER_ADMIN')
   const [organizationId, setOrganizationId] = useState('')
   const orgs = useQuery({ queryKey: ['organizations', null], queryFn: () => organizationsApi.list() })
   const orgName = (id: number | null) => (id == null ? 'Platform' : (orgs.data?.find((o) => o.id === id)?.name ?? `#${id}`))
@@ -341,16 +353,18 @@ export default function UsersPage() {
       cell: (u) => (
         <>
           <IconButton icon={<Eye size={15} />} label="View" className="me-1" onClick={() => setViewing(u)} />
-          {canManage && (
+          {canEditUser(u) && (
             <>
               <IconButton icon={<Edit2 size={15} />} label="Edit" className="me-1" onClick={() => setEditing(u)} />
-              <IconButton
-                icon={<Trash2 size={15} />}
-                label="Delete"
-                variant="danger"
-                disabled={remove.isPending}
-                onClick={() => confirm(`Delete ${u.fullName}?`) && remove.mutate(u.id)}
-              />
+              {u.id !== session?.userId && (
+                <IconButton
+                  icon={<Trash2 size={15} />}
+                  label="Delete"
+                  variant="danger"
+                  disabled={remove.isPending}
+                  onClick={() => confirm(`Delete ${u.fullName}?`) && remove.mutate(u.id)}
+                />
+              )}
             </>
           )}
         </>
@@ -387,7 +401,7 @@ export default function UsersPage() {
           orgName={orgName(viewing.organizationId)}
           onClose={() => setViewing(null)}
           onEdit={
-            canManage
+            canEditUser(viewing)
               ? () => {
                   // Swap the details dialog for the edit form of the same user.
                   setEditing(viewing)

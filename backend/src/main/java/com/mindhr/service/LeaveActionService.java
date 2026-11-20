@@ -150,7 +150,7 @@ public class LeaveActionService {
     private LeaveRequest findDecidable(Long id) {
         LeaveRequest leave = leaveRequestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Leave request not found: " + id));
-        if (!TenantContext.canAccess(leave.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(leave.getOrganization().getId())) {
             throw new ResourceNotFoundException("Leave request not found: " + id);
         }
         scope.assertCanAccess(leave.getEmployee());

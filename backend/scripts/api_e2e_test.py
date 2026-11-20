@@ -551,6 +551,97 @@ def main():
     s, b = call("GET", "/api/organizations", owner)
     check("Owner's organization list has only theirs", s in (403,) or (s == 200 and all(o["id"] == org_id for o in b)), f"{s}")
 
+    # ------------------------------------------------ Admin user type
+    begin("Admin user type")
+    super_id = claims(admin).get("userId")
+    s, b = call("POST", "/api/users", admin, {
+        "email": "qa.newsuper@mindhr.test", "password": PASSWORD, "fullName": "QA New Super",
+        "phone": "01900000007", "userType": "SUPER_ADMIN"})
+    expect("Adding a Super Admin -> 400", s, b, 400)
+    s, all_users = call("GET", "/api/users", admin)
+    admin_user = find(all_users or [], email="qa.admin@mindhr.test")
+    if not admin_user:
+        s, roles_all = call("GET", "/api/roles", admin)
+        admin_role = next((r["id"] for r in roles_all or [] if r.get("organizationId") is None and r["name"] == "ADMIN"), None)
+        check("Platform ADMIN role exists", admin_role is not None)
+        s, admin_user = call("POST", "/api/users", admin, {
+            "email": "qa.admin@mindhr.test", "password": PASSWORD, "fullName": "QA Admin",
+            "phone": "01900000006", "userType": "ADMIN", "roleIds": [admin_role] if admin_role else []})
+        expect("Super Admin creates an Admin", s, admin_user, (200, 201))
+    plat_admin = login("qa.admin@mindhr.test", PASSWORD)
+    if check("Admin login", plat_admin):
+        s, b = call("GET", "/api/users", plat_admin)
+        expect("Admin lists users", s, b, 200)
+        temp = find(b or [], email="qa.temp@mindhr.test")
+        if not temp:
+            s, temp = call("POST", "/api/users", plat_admin, {
+                "organizationId": org_id, "email": "qa.temp@mindhr.test", "password": PASSWORD,
+                "fullName": "QA Temp", "phone": "01900000005", "userType": "ORG_USER"})
+            expect("Admin creates an org user", s, temp, (200, 201))
+        if temp:
+            s, b = call("DELETE", f"/api/users/{temp['id']}", plat_admin)
+            expect("Admin deletes an org user", s, b, (200, 204))
+        s, b = call("POST", "/api/users", plat_admin, {
+            "email": "qa.newsuper@mindhr.test", "password": PASSWORD, "fullName": "QA New Super",
+            "phone": "01900000007", "userType": "SUPER_ADMIN"})
+        expect("Admin adds a Super Admin -> 400", s, b, 400)
+        s, sa = call("GET", f"/api/users/{super_id}", plat_admin)
+        if expect("Admin reads the Super Admin", s, sa, 200):
+            body = {k: sa.get(k) for k in ("email", "fullName", "phone", "userType", "organizationId", "active")}
+            body["phone"] = body["phone"] or "01900000004"  # the seeded Super Admin may have no phone yet
+            body["password"] = "Hijack@12345"
+            s, b = call("PUT", f"/api/users/{super_id}", plat_admin, body)
+            expect("Admin changes the Super Admin password -> 403", s, b, 403)
+        s, b = call("DELETE", f"/api/users/{super_id}", plat_admin)
+        expect("Admin deletes the Super Admin -> 403", s, b, 403)
+        s, b = call("GET", "/api/system-settings", plat_admin)
+        expect("Admin reads system settings -> 403", s, b, 403)
+        if admin_user:
+            s, b = call("DELETE", f"/api/users/{admin_user['id']}", plat_admin)
+            expect("Admin deletes own account -> 400", s, b, 400)
+    s, b = call("DELETE", f"/api/users/{super_id}", admin)
+    expect("Super Admin deletes own account -> 400", s, b, 400)
+
+    # ------------------------------------------------ mindHR staff HR (platform users' HR modules)
+    begin("mindHR staff HR")
+    s, b = call("GET", "/api/organizations", admin)
+    check("Internal organization is not in the client list",
+          s == 200 and all(o.get("slug") != "mindhr-internal" for o in b), f"{s}")
+    s, staff = call("GET", "/api/employees", admin)
+    expect("Super Admin lists mindHR staff (no organization picked)", s, staff, 200)
+    s, b = call("GET", f"/api/employees?organizationId={org_id}", admin)
+    check("Super Admin cannot read a client's employees",
+          s == 200 and all(e["organizationId"] != org_id for e in b), f"{s}")
+    staffer = find(staff or [], email="qa.staff@mindhr.test")
+    if not staffer:
+        s, staffer = call("POST", "/api/employees", admin, {
+            "fullName": "QA Staff", "email": "qa.staff@mindhr.test", "phone": "01900000003",
+            "position": "Support", "employmentType": "FULL_TIME", "joinedAt": "2026-01-01",
+            "password": PASSWORD, "organizationId": org_id})
+        expect("Super Admin adds a mindHR staff employee", s, staffer, (200, 201))
+    if staffer:
+        check("Staff employee is in mindHR's organization, not the client's", staffer["organizationId"] != org_id)
+        s, u = call("GET", f"/api/users/{staffer['userId']}", admin)
+        check("Staff employee's login is mindHR Staff with the EMPLOYEE role",
+              s == 200 and u["userType"] == "SAAS_STAFF" and u["organizationId"] is None
+              and [r["name"] for r in u["roles"]] == ["EMPLOYEE"], f"{s} {u and u.get('userType')}")
+        staff_tok = login("qa.staff@mindhr.test", PASSWORD)
+        if check("Staff employee login", staff_tok):
+            c = claims(staff_tok)
+            check("Staff token: SELF scope and an employee profile",
+                  c.get("dataScope") == "SELF" and c.get("employeeId") == staffer["id"], str(c.get("dataScope")))
+            s, b = call("GET", "/api/employees", staff_tok)
+            check("Staff employee sees only themselves",
+                  s == 200 and [e["id"] for e in b] == [staffer["id"]], f"{s} {len(b or [])}")
+            s, b = call("GET", "/api/employees/me", staff_tok)
+            expect("Staff employee reads own profile", s, b, 200)
+    if plat_admin:
+        s, b = call("GET", "/api/employees", plat_admin)
+        check("Admin lists mindHR staff", s == 200 and all(e["organizationId"] != org_id for e in b), f"{s}")
+    s, b = call("GET", "/api/employees", owner)
+    check("Owner still sees only their organization",
+          s == 200 and all(e["organizationId"] == org_id for e in b), f"{s}")
+
     return finish()
 
 

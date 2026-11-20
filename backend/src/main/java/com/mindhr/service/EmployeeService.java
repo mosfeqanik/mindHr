@@ -16,6 +16,7 @@ import com.mindhr.repository.BranchRepository;
 import com.mindhr.repository.DepartmentRepository;
 import com.mindhr.repository.EmployeeRepository;
 import com.mindhr.repository.OrganizationRepository;
+import com.mindhr.repository.RoleRepository;
 import com.mindhr.repository.UserRepository;
 import com.mindhr.security.TenantContext;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final BranchRepository branchRepository;
     private final DepartmentRepository departmentRepository;
     private final PlanLimitService planLimitService;
@@ -45,7 +47,7 @@ public class EmployeeService {
     private final PasswordEncoder passwordEncoder;
 
     public List<EmployeeResponse> list(Long requestedOrganizationId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         Set<Long> visible = scope.visibleEmployeeIds(organizationId);
         return employeeRepository.findByOrganizationId(organizationId).stream()
                 .filter(e -> visible == null || visible.contains(e.getId()))
@@ -66,7 +68,7 @@ public class EmployeeService {
 
     @Transactional
     public EmployeeResponse create(EmployeeRequest request) {
-        Long organizationId = TenantContext.resolveOrganizationId(request.organizationId());
+        Long organizationId = TenantContext.resolveHrOrganizationId(request.organizationId());
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found: " + organizationId));
 
@@ -175,7 +177,10 @@ public class EmployeeService {
         }
     }
 
-    /** Creates the mobile-app login for a new employee and gives it the EMPLOYEE role. */
+    /**
+     * Creates the mobile-app login for a new employee and gives it the EMPLOYEE role. In mindHR's own organization the
+     * login is a mindHR Staff (platform) user with the platform EMPLOYEE role, not an organization user.
+     */
     private User createLogin(EmployeeRequest request, Organization organization) {
         if (request.email() == null || request.email().isBlank()) {
             throw new IllegalArgumentException("Email is required to create the employee's login (or pass userId)");
@@ -186,22 +191,31 @@ public class EmployeeService {
         if (userRepository.existsByEmailIgnoreCase(request.email())) {
             throw new DuplicateResourceException("A user with email '" + request.email() + "' already exists");
         }
+        boolean staff = organization.isInternal();
         User user = new User();
-        user.setOrganization(organization);
+        user.setOrganization(staff ? null : organization);
         user.setEmail(request.email());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setFullName(request.fullName());
         user.setPhone(request.phone());
-        user.setUserType(UserType.ORG_USER);
+        user.setUserType(staff ? UserType.SAAS_STAFF : UserType.ORG_USER);
         user.setActive(true);
-        user.setRoles(new java.util.HashSet<>(Set.of(roleProvisioner.employeeRole(organization))));
+        user.setRoles(new java.util.HashSet<>(Set.of(staff
+                ? roleRepository.findByOrganizationIdIsNull().stream()
+                        .filter(r -> r.getName().equalsIgnoreCase(OrgRoleProvisioner.EMPLOYEE)).findFirst()
+                        .orElseThrow(() -> new IllegalStateException("Platform EMPLOYEE role is missing"))
+                : roleProvisioner.employeeRole(organization))));
         return userRepository.save(user);
     }
 
     private User resolveExistingUser(Long userId, Long organizationId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
-        if (user.getOrganization() == null || !user.getOrganization().getId().equals(organizationId)) {
+        // mindHR's own staff are platform users (no organization); a client's employees belong to that client.
+        boolean fits = TenantContext.isInternalOrganization(organizationId)
+                ? user.getOrganization() == null && user.getUserType() != UserType.ORG_USER
+                : user.getOrganization() != null && user.getOrganization().getId().equals(organizationId);
+        if (!fits) {
             throw new ResourceNotFoundException("User not found: " + userId);
         }
         employeeRepository.findByUserId(userId).ifPresent(existing -> {

@@ -48,6 +48,13 @@ public class Organization extends BaseEntity {
     @Column(name = "activated_at")
     private LocalDateTime activatedAt;
 
+    /**
+     * True only for mindHR's own organization (see {@code InternalOrganizationProvisioner}): it holds mindHR's staff
+     * HR data, is hidden from client lists and has no subscription or plan limits.
+     */
+    @Column(name = "is_internal", nullable = false, columnDefinition = "boolean default false")
+    private boolean internal;
+
     @OneToMany(mappedBy = "organization")
     private List<User> users = new ArrayList<>();
 

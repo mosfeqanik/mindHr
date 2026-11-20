@@ -4,7 +4,7 @@ export interface LoginRequest {
   password: string
 }
 
-export type UserType = 'SUPER_ADMIN' | 'SAAS_STAFF' | 'ORG_USER'
+export type UserType = 'SUPER_ADMIN' | 'ADMIN' | 'SAAS_STAFF' | 'ORG_USER'
 
 export interface LoginResponse {
   accessToken: string

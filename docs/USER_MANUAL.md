@@ -22,6 +22,7 @@ Follow the steps in order: each step needs the data from the steps before it.
 | Who | Signs in to | Does |
 |---|---|---|
 | Super Admin (you, the SaaS company) | Web app | Steps 1 and 2: plans, organizations, owners |
+| Admin (mindHR) | Web app | Adds, edits and deletes users (not Super Admins); sees the platform pages |
 | Organization owner or HR admin | Web app | Steps 3 to 8: branches, employees, leave, shifts, payroll |
 | Employee | Mobile app | Step 9: check in, apply for leave, send requests |
 | Manager (Team Lead / Branch Manager) | Mobile app or web app | Step 10: approve leave and requests |
@@ -71,8 +72,8 @@ Every new organization automatically gets 5 roles:
 > The organization needs an active subscription (trial, active or grace period). Without one you cannot add
 > employees or branches.
 
-From now on, **sign in as the organization owner** (log out of the Super Admin account). A Super Admin can also do
-these steps after choosing the organization in the top bar.
+From now on, **sign in as the organization owner** (log out of the Super Admin account). A Super Admin cannot do
+these steps for a client: a client's HR data is only for that organization's own users.
 
 ## 3. Create branches
 
@@ -141,11 +142,31 @@ The web form cannot set these fields yet. Without a **branch**, the location che
 
 The changes reach the mobile app at the employee's **next sign-in** (the branch is stored in the login token).
 
+### User types: Super Admin and Admin
+
+- The **Super Admin** is the account created at the first start. It can do everything, and only a Super Admin can
+  edit it or change its password. A new Super Admin cannot be added: the **Add user** form has no Super Admin type.
+- An **Admin** (user type *Admin*, role *ADMIN*) is a mindHR platform user who can also add, edit and delete users
+  (Admin, mindHR Staff, Organization User) and set their passwords. An Admin cannot touch a Super Admin account,
+  subscription plans, permissions or System Settings.
+- Nobody can delete their own account.
+
+### mindHR's own staff HR
+
+For the Super Admin, Admins and mindHR Staff, the sidebar section **mindHR Staff HR** (Employees, Branches,
+Departments, Attendance, Shifts, Leave, Payroll, Assets) manages **mindHR's own employees**, not a client's. No
+organization needs to be picked and there are no plan limits. It works like the client steps 3 to 10.
+
+- An employee added here gets a **mindHR Staff** login with the **Employee** role. To give more access, change the
+  role on the **Users** page: **HR Admin** (all staff HR), **Accounts** (payroll for all staff), **Team Lead** (their
+  team), **Employee** (only themselves). The Super Admin and Admins can do everything.
+- The person must sign out and in again after a role change.
+
 ### Make someone a manager (roles)
 
-Only the **Super Admin** can change users and roles:
+The **Super Admin** or an **Admin** can change users and roles:
 
-1. Sign in as Super Admin → **Users** → the pencil (**Edit**) on the manager's row.
+1. Sign in as Super Admin or Admin → **Users** → the pencil (**Edit**) on the manager's row.
 2. Under **Role**, choose **Team Lead** (or **Branch Manager**). Each user has exactly one role; Team Lead and
    Branch Manager already include everything an Employee can do.
 3. **Save**.

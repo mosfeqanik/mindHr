@@ -27,7 +27,7 @@ public class PayslipService {
     private final DataScopeService scope;
 
     public List<PayslipResponse> list(Long requestedOrganizationId, Long employeeId) {
-        Long organizationId = TenantContext.resolveOrganizationId(requestedOrganizationId);
+        Long organizationId = TenantContext.resolveHrOrganizationId(requestedOrganizationId);
         Set<Long> visible = scope.visibleEmployeeIds(organizationId);
         return repository.findByOrganizationId(organizationId).stream()
                 .filter(e -> visible == null || visible.contains(e.getEmployee().getId()))
@@ -79,7 +79,7 @@ public class PayslipService {
     private Payslip findAccessibleEntity(Long id) {
         Payslip entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payslip not found: " + id));
-        if (!TenantContext.canAccess(entity.getOrganization().getId())) {
+        if (!TenantContext.canAccessHr(entity.getOrganization().getId())) {
             throw new ResourceNotFoundException("Payslip not found: " + id);
         }
         scope.assertCanAccess(entity.getEmployee());

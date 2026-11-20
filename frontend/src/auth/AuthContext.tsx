@@ -50,7 +50,7 @@ interface AuthValue {
   signIn: (token: string, fullName: string) => void
   signOut: () => void
   can: (permission: string) => boolean
-  /** SaaS-side user (SUPER_ADMIN / SAAS_STAFF), not bound to one organization. */
+  /** SaaS-side user (SUPER_ADMIN / ADMIN / SAAS_STAFF), not bound to one organization. */
   isPlatform: boolean
   /** Organization a platform user is working in (top bar picker); an org user's own organization. */
   orgId: number | null
