@@ -1,0 +1,73 @@
+# Builds the Android employee app (mobile_app/) on GitHub's servers, which have the Android SDK.
+# The release APK calls the live API https://mindhr.onrender.com/ (see app/build.gradle.kts) and is debug-signed
+# so it installs directly for testing.
+#
+# Where to get the APK:
+#   - Every run: Actions tab > "Android APK" > the run > Artifacts > mindhr-apk (zip with the .apk inside).
+#   - Runs on main (push or manual): also a GitHub Release "Android APK build N" with the .apk attached.
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["mobile_app/**", ".github/workflows/android-apk.yml"]
+  pull_request:
+    paths: ["mobile_app/**", ".github/workflows/android-apk.yml"]
+
+permissions:
+  contents: write   # only used to create the Release on main
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: mobile_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # Installs the SDK command-line tools and accepts the licenses, so AGP can download
+      # platform 37 and the build tools it needs.
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build release APK
+        run: sh ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Name the APK
+        id: apk
+        run: |
+          name="mindhr-${GITHUB_SHA::7}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$name"
+          echo "path=mobile_app/$name" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mindhr-apk
+          path: ${{ steps.apk.outputs.path }}
+          retention-days: 30
+
+      - name: Publish as a GitHub Release (main only)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-build-${{ github.run_number }}
+          name: Android APK build ${{ github.run_number }}
+          prerelease: true
+          files: ${{ steps.apk.outputs.path }}
+          body: |
+            Test build of the mindHR employee app from ${{ github.sha }}.
+            API: https://mindhr.onrender.com/ · debug-signed (not for the Play Store).
+            Install: download the .apk on the phone and allow "Install unknown apps".
