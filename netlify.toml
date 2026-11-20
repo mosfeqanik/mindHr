@@ -14,7 +14,7 @@
 # to Render, so the backend needs no CORS config. Change the host if your Render service URL differs.
 [[redirects]]
   from = "/api/*"
-  to = "https://mindhr-api.onrender.com/api/:splat"
+  to = "https://mindhr.onrender.com/api/:splat"
   status = 200
   force = true
 
