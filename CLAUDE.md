@@ -132,6 +132,10 @@ sh ./gradlew installDebug -PapiBaseUrl=http://<pc-ip>:8080/   # real phone on th
 sh ./gradlew assembleRelease                   # APK for the live API https://mindhr.onrender.com/ (debug-signed)
 ```
 
+- **APK from CI:** `.github/workflows/android-apk.yml` builds the release APK on GitHub (PRs touching `mobile_app/`,
+  pushes to `main`, or "Run workflow"). Download it from the run's Artifacts (`mindhr-apk`); runs on `main` also publish
+  a pre-release "Android APK build N" with the `.apk` attached. Use this when no local Android SDK is available.
+
 - If the build fails with `jlink executable .../redhat.java.../jre/.../jlink does not exist`: VS Code generated
   `gradle/gradle-daemon-jvm.properties` (toolchainVersion=25) and Gradle picked VS Code's JRE. Build from a terminal
   with `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`.
