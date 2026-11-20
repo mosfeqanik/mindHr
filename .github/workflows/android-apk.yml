@@ -38,8 +38,11 @@ jobs:
           java-version: "21"
 
       # Installs the SDK command-line tools and accepts the licenses, so AGP can download
-      # platform 37 and the build tools it needs.
+      # platform 37 and the build tools it needs. `packages` must be set: the action's default
+      # list includes the legacy "tools" package, which no longer exists, and sdkmanager fails on it.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - uses: gradle/actions/setup-gradle@v4
 
