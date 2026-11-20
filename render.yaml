@@ -3,7 +3,7 @@
 # Values marked `sync: false` are typed once in the dashboard and are never stored in git.
 services:
   - type: web
-    name: mindhr-api
+    name: mindhr                  # service URL: https://mindhr.onrender.com
     runtime: docker
     plan: free
     branch: main

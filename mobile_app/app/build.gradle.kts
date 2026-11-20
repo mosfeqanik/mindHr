@@ -14,16 +14,21 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0.0"
-
-        // 10.0.2.2 = host machine as seen from the Android emulator. Override for a real device,
-        // e.g. -PapiBaseUrl=http://192.168.1.10:8080/
-        val apiBaseUrl = (project.findProperty("apiBaseUrl") as String?) ?: "http://10.0.2.2:8080/"
-        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
+    // API base URL per build type; -PapiBaseUrl=... overrides both (e.g. http://192.168.1.10:8080/ for a real phone).
+    val apiBaseUrlOverride = project.findProperty("apiBaseUrl") as String?
     buildTypes {
+        debug {
+            // 10.0.2.2 = host machine as seen from the Android emulator (local backend).
+            buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrlOverride ?: "http://10.0.2.2:8080/"}\"")
+        }
         release {
             isMinifyEnabled = false
+            // Live backend on Render.
+            buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrlOverride ?: "https://mindhr.onrender.com/"}\"")
+            // Signed with the debug key so the APK installs for testing. Use a real keystore before the Play Store.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
