@@ -23,7 +23,7 @@ import {
   Select,
   type Column,
 } from '../../components/ui'
-import { formatMoney, label, orNull } from '../../lib/format'
+import { MOBILE_NUMBER_RE, cleanPhone, formatMoney, label, orNull } from '../../lib/format'
 import { AddButton, Card } from './shared'
 
 const STATUS_BADGE: Record<OrganizationStatus, string> = {
@@ -196,8 +196,12 @@ function OrganizationForm({
 
 const ownerSchema = z.object({
   fullName: z.string().trim().min(1, 'Full name is required').max(150),
-  email: z.string().trim().email('Email must be valid').max(255),
-  phone: z.string().max(30),
+  email: z.string().trim().min(1, 'Email is required').email('Email must be valid').max(255),
+  phone: z
+      .string()
+      .transform(cleanPhone)
+      .refine((v) => v.length > 0, 'Mobile number is required')
+      .refine((v) => v.length === 0 || MOBILE_NUMBER_RE.test(v), 'Enter a valid Bangladeshi mobile number, e.g. 01712345678'),
   password: z.string().min(8, 'Password must be at least 8 characters').max(100),
 })
 type OwnerForm = z.infer<typeof ownerSchema>
@@ -223,7 +227,7 @@ function OwnerModal({ org, onClose, onSaved }: { org: Organization; onClose: () 
         organizationId: org.id,
         fullName: v.fullName.trim(),
         email: v.email.trim(),
-        phone: orNull(v.phone),
+        phone: v.phone,
         password: v.password,
         userType: 'ORG_USER',
         active: true,
@@ -295,22 +299,22 @@ function OwnerModal({ org, onClose, onSaved }: { org: Organization; onClose: () 
           ) : (
             <div className="row">
               <div className="col-md-6">
-                <Field label="Full name" error={errors.fullName?.message}>
+                <Field label="Full name" required error={errors.fullName?.message}>
                   <Input {...register('fullName')} />
                 </Field>
               </div>
               <div className="col-md-6">
-                <Field label="Email (login)" error={errors.email?.message}>
+                <Field label="Email (login)" required error={errors.email?.message}>
                   <Input type="email" {...register('email')} />
                 </Field>
               </div>
               <div className="col-md-6">
-                <Field label="Phone" error={errors.phone?.message}>
-                  <Input {...register('phone')} />
+                <Field label="Mobile number" required error={errors.phone?.message}>
+                  <Input type="tel" inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" {...register('phone')} />
                 </Field>
               </div>
               <div className="col-md-6">
-                <Field label="Password" error={errors.password?.message}>
+                <Field label="Password" required error={errors.password?.message}>
                   <PasswordInput autoComplete="new-password" {...register('password')} />
                 </Field>
               </div>            </div>

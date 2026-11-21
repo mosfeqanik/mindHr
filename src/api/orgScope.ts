@@ -1,7 +1,7 @@
 import type { InternalAxiosRequestConfig } from 'axios'
 
 /**
- * Platform users (SUPER_ADMIN / SAAS_STAFF) are not bound to an organization, so the backend
+ * Platform users (SUPER_ADMIN / ADMIN / SAAS_STAFF) are not bound to an organization, so the backend
  * needs an explicit organizationId on org-scoped calls. The organization picked in the top bar
  * is kept here and added to every request except the global endpoints below.
  */

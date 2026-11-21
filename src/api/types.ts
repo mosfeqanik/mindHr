@@ -4,7 +4,7 @@ export interface LoginRequest {
   password: string
 }
 
-export type UserType = 'SUPER_ADMIN' | 'SAAS_STAFF' | 'ORG_USER'
+export type UserType = 'SUPER_ADMIN' | 'ADMIN' | 'SAAS_STAFF' | 'ORG_USER'
 
 export interface LoginResponse {
   accessToken: string
@@ -207,6 +207,15 @@ export interface User {
   active: boolean
   lastLoginAt: string | null
   roles: { id: number; name: string }[]
+}
+/** A role from /api/roles (organizationId null = platform role). Permissions are left out: the UI does not use them. */
+export interface Role {
+  id: number
+  organizationId: number | null
+  name: string
+  description: string | null
+  dataScope: string
+  system: boolean
 }
 export interface UserRequest {
   organizationId?: number | null

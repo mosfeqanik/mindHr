@@ -14,7 +14,7 @@ import {
   type TicketStatus,
 } from '../../api/types'
 import { Button, DataTable, ErrorBox, Field, Input, Modal, ModalFooter, PageHeader, Select, type Column } from '../../components/ui'
-import { label } from '../../lib/format'
+import { label, userTypeLabel } from '../../lib/format'
 import { Badge, Card, StatusSelect } from './shared'
 
 const PRIORITY_BADGE: Record<TicketPriority, string> = {
@@ -119,7 +119,7 @@ function AssignModal({ item, onClose, onDone }: { item: SupportTicket; onClose: 
             <option value="">Select...</option>
             {staff.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.fullName} ({label(u.userType)})
+                {u.fullName} ({userTypeLabel(u.userType)})
               </option>
             ))}
           </Select>
