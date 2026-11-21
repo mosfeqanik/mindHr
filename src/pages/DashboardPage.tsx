@@ -5,7 +5,7 @@ import { errorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { ErrorBox, PageHeader } from '../components/ui'
 import { activityBadge, canViewActivity, describeActivity, formatDateTime } from '../lib/activity'
-import { label } from '../lib/format'
+import { label, userTypeLabel } from '../lib/format'
 
 function RecentActivity() {
   const { isPlatform, orgId } = useAuth()
@@ -51,7 +51,7 @@ export default function DashboardPage() {
             <div className="card">
               <div className="card-body">
                 <h4 className="card-title">Welcome, {session?.fullName}</h4>
-                <h6 className="card-subtitle">Signed in as {session?.userType.replace('_', ' ')}</h6>
+                <h6 className="card-subtitle">Signed in as {userTypeLabel(session?.userType)}</h6>
                 <p className="mb-0">
                   Data scope <strong>{session?.dataScope}</strong> &middot; {session?.authorities.length} permissions
                 </p>

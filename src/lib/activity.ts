@@ -46,4 +46,4 @@ export const formatDateTime = (v: string | null | undefined) => (v ? v.slice(0, 
 
 /** Who may open the activity log: platform users, and org users with organization-wide data scope (backend enforces it). */
 export const canViewActivity = (userType?: string, dataScope?: string) =>
-  userType === 'SUPER_ADMIN' || userType === 'SAAS_STAFF' || dataScope === 'ORGANIZATION'
+  userType === 'SUPER_ADMIN' || userType === 'ADMIN' || userType === 'SAAS_STAFF' || dataScope === 'ORGANIZATION'
